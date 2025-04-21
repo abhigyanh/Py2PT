@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py2pt"
+version = "1.0c"
+description = "2PT method for velocity power spectra and entropy calculation"
+authors = [
+    { name = "Your Name", email = "your@email.com" }
+]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "MDAnalysis",
+    "numpy",
+    "matplotlib",
+    "tqdm",
+    "numba",
+    "scipy"
+]
+
+[project.scripts]
+py2pt = "py2pt.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"} 
