@@ -172,20 +172,14 @@ def main():
     S_vib = calculate_vibrational_entropy(
         freqs[1:], vDOS[1:], temperature
     )
-
-    # Convert frequencies to wavenumbers (cm^-1) and scale power spectra
-    wavenumbers = freqs/c
-    tDOS_scaled = c*tDOS
-    rDOS_scaled = c*rDOS
-    vDOS_scaled = c*vDOS
     
     # Integrate the power spectra
-    vt_integral = np.trapz(tDOS_scaled, wavenumbers)
-    vr_integral = np.trapz(rDOS_scaled, wavenumbers)
-    vv_integral = np.trapz(vDOS_scaled, wavenumbers)
+    vt_integral = np.trapz(tDOS, freqs)
+    vr_integral = np.trapz(rDOS, freqs)
+    vv_integral = np.trapz(vDOS, freqs)
     
-    # Print power spectra results
-    print("\nIntegrated Power Spectra:")
+    # Print DOS spectra results
+    print("\nIntegrated DOS Spectra:")
     print("-"*40)
     print(f"{'Translational:':<20} {vt_integral:>12.4f}")
     print(f"{'Rotational:':<20} {vr_integral:>12.4f}")
@@ -193,15 +187,19 @@ def main():
     print("-"*40)
     print(f"{'Total:':<20} {(vt_integral + vr_integral + vv_integral):>12.4f}")
     
-    # Save and plot power spectra
-    save_power_spectra_txt(
-        wavenumbers, tDOS_scaled, rDOS_scaled, vDOS_scaled,
-        filename='density_of_states.txt'
-    )
-    plot_power_spectra(
-        wavenumbers, tDOS_scaled, rDOS_scaled, vDOS_scaled,
-        filename='density_of_states.png', xlim=[0,1500]
-    )
+    # Save and plot spectra
+    spectra_list = [
+        {'freqs': freqs, 'DOS': tDOS, 'label': 'Translational'},
+        {'freqs': freqs, 'DOS': DOS_tr_g, 'label': 'Translational (g)'},
+        {'freqs': freqs, 'DOS': DOS_tr_s, 'label': 'Translational (s)'},
+        {'freqs': freqs, 'DOS': rDOS, 'label': 'Rotational'},
+        {'freqs': freqs, 'DOS': DOS_rot_g, 'label': 'Rotational (g)'},
+        {'freqs': freqs, 'DOS': DOS_rot_s, 'label': 'Rotational (s)'},
+        {'freqs': freqs, 'DOS': vDOS, 'label': 'Vibrational'},
+        {'freqs': freqs, 'DOS': tDOS + rDOS + vDOS, 'label': 'Total'},
+    ]
+    save_spectra_txt(spectra_list, filename='density_of_states.txt')
+    plot_spectra(spectra_list, filename='density_of_states.png', xlim=[0,1500])
 
     # Calculate totals for each entropy-related row
     s0_total = s0_tr + s0_rot + s0_vib
@@ -229,6 +227,7 @@ def main():
             [S_tr_mol, S_rot_mol, S_vib_mol, S_total_mol],
         )),
         header='(J/mol K)   Translational   Rotational   Vibrational   Total',
+        fmt='%.2f'
     )
 
     # Check for negative entropy (which indicates a problem)

@@ -96,7 +96,7 @@ def calculate_fluidicity(delta: float) -> float:
 
 def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray, 
                               T: float, V: float, N: float, m: float,
-                              save_plot: bool = True) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+                              save_plot: bool = False) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
     """
     Decompose translational density of states into gas-like and solid-like components.
     
@@ -138,23 +138,21 @@ def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray,
         most_negative = np.min(DOS_tr_s)
         print(f"Most negative value in DOS_tr_s: {most_negative}")
         neg_indices = np.where(DOS_tr_s < tol)
-        DOS_tr_s[neg_indices] = 0
+        # DOS_tr_s[neg_indices] = 0
 
     if save_plot:
-        plot_dos_curves(
-            nu/c,
-            {'tr_g': c*DOS_tr_g, 'tr_s': c*DOS_tr_s, 'tr': c*DOS_tr},
-            filename='DoS_tr.png',
-            xlim=(0, 1500),
-            xlabel=r'Wavenumber $(cm^{-1})$',
-            ylabel=r'$S(\nu)$ (cm)'
-        )
+        spectra_list = [
+            {'freqs': nu, 'DOS': DOS_tr_g, 'label': 'tr_g'},
+            {'freqs': nu, 'DOS': DOS_tr_s, 'label': 'tr_s'},
+            {'freqs': nu, 'DOS': DOS_tr, 'label': 'tr'}
+        ]
+        plot_spectra(spectra_list, filename='DoS_tr.png', xlim=[0,1000])
 
     return Delta_tr, f_tr, s0_tr, DOS_tr_g, DOS_tr_s
 
 def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
                            T: float, V: float, N: float, m: float,
-                           save_plot: bool = True) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+                           save_plot: bool = False) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
     """
     Decompose rotational density of states into gas-like and solid-like components.
     
@@ -198,22 +196,20 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
         most_negative = np.min(DOS_rot_s)
         print(f"Most negative value in DOS_rot_s: {most_negative}")
         neg_indices = np.where(DOS_rot_s < tol)
-        DOS_rot_s[neg_indices] = 0
+        # DOS_rot_s[neg_indices] = 0
 
     if save_plot:
-        plot_dos_curves(
-            nu/c,
-            {'rot_g': c*DOS_rot_g, 'rot_s': c*DOS_rot_s, 'rot': c*DOS_rot},
-            filename='DoS_rot.png',
-            xlim=(0, 1500),
-            xlabel=r'Wavenumber $(cm^{-1})$',
-            ylabel=r'$S(\nu)$ (cm)'
-        )
+        spectra_list = [
+            {'freqs': nu, 'DOS': DOS_rot_g, 'label': 'rot_g'},
+            {'freqs': nu, 'DOS': DOS_rot_s, 'label': 'rot_s'},
+            {'freqs': nu, 'DOS': DOS_rot, 'label': 'rot'}
+        ]
+        plot_spectra(spectra_list, filename='DoS_rot.png', xlim=[0,1000])
 
     return Delta_rot, f_rot, s0_rot, DOS_rot_g, DOS_rot_s
 
 def decompose_vibrational_dos(nu: np.ndarray, DOS_vib: np.ndarray,
-                            save_plot: bool = True) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
+                            save_plot: bool = False) -> Tuple[float, float, float, np.ndarray, np.ndarray]:
     """
     Decompose vibrational density of states (all solid-like).
     
@@ -239,14 +235,12 @@ def decompose_vibrational_dos(nu: np.ndarray, DOS_vib: np.ndarray,
     DOS_vib_s = DOS_vib - DOS_vib_g
 
     if save_plot:
-        plot_dos_curves(
-            nu/c,
-            {'vib_g': c*DOS_vib_g, 'vib_s': c*DOS_vib_s, 'vib': c*DOS_vib},
-            filename='DoS_vib.png',
-            xlim=(0, 4000),
-            xlabel=r'Wavenumber $(cm^{-1})$',
-            ylabel=r'$S(\nu)$ (cm)'
-        )
+        spectra_list = [
+            {'freqs': nu, 'DOS': DOS_vib_g, 'label': 'vib_g'},
+            {'freqs': nu, 'DOS': DOS_vib_s, 'label': 'vib_s'},
+            {'freqs': nu, 'DOS': DOS_vib, 'label': 'vib'}
+        ]
+        plot_spectra(spectra_list, filename='DoS_vib.png', xlim=[0,4000])
 
     return Delta_vib, f_vib, s0_vib, DOS_vib_g, DOS_vib_s
 
