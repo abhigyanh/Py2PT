@@ -1,3 +1,9 @@
+"""
+Physical and unit conversion constants for the Py2PT package.
+
+This module defines fundamental physical constants and unit conversion factors used throughout the codebase.
+All values are in SI or commonly used MD units.
+"""
 pi = 3.14159265359
 c = 0.0299792   #cm/ps
 e = 2.718

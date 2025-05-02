@@ -6,6 +6,33 @@ from numba import njit
 
 @njit
 def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
+    """
+    JIT-accelerated core function to decompose atomic velocities into translational, rotational, and vibrational components.
+
+    Parameters
+    ----------
+    positions : np.ndarray
+        Atomic positions, shape (n_atoms, 3)
+    velocities : np.ndarray
+        Atomic velocities, shape (n_atoms, 3)
+    masses : np.ndarray
+        Atomic masses, shape (n_atoms,)
+    is_linear : bool
+        Whether the molecule is linear (affects principal moments)
+
+    Returns
+    -------
+    vt : np.ndarray
+        Translational velocities, shape (n_atoms, 3)
+    rot_vel : np.ndarray
+        Rotational velocities, shape (n_atoms, 3)
+    vib_vel : np.ndarray
+        Vibrational velocities, shape (n_atoms, 3)
+    omega : np.ndarray
+        Angular velocity vector, shape (3,)
+    evl : np.ndarray
+        Principal moments of inertia, shape (3,)
+    """
     # Calculate the center of mass position and velocity
     n_atoms = positions.shape[0]
     com_pos = np.sum(masses[:, None] * positions, axis=0) / np.sum(masses)

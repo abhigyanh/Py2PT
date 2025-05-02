@@ -1,9 +1,7 @@
 """
-Calculate moments of inertia for molecules in a trajectory.
+Inertia calculation utilities for Py2PT.
 
-This module provides functions to calculate principal moments of inertia
-for molecules in an MDAnalysis AtomGroup, with statistical analysis
-across all molecules and frames.
+This module provides functions to calculate principal moments of inertia for molecules in a trajectory, including per-frame, time-averaged, and sampled statistics. Used for entropy and rotational analysis in the 2PT method.
 """
 
 import numpy as np
@@ -85,6 +83,27 @@ def calculate_average_moments(atomgroup) -> Tuple[np.ndarray, np.ndarray, np.nda
     return I_avg, I_std, I_tensor
 
 def _frame_moments(args):
+    """
+    Helper function to calculate principal moments of inertia for all molecules in a single trajectory frame.
+
+    Parameters
+    ----------
+    args : tuple
+        (u_filename, traj_filename, selection, frame_idx)
+        u_filename : str
+            Path to topology file
+        traj_filename : str
+            Path to trajectory file
+        selection : str
+            Atom selection string
+        frame_idx : int
+            Frame index to analyze
+
+    Returns
+    -------
+    moments : np.ndarray
+        Array of principal moments for all molecules in the frame, shape (n_molecules, 3)
+    """
     u_filename, traj_filename, selection, frame_idx = args
     import MDAnalysis as mda
     u = mda.Universe(u_filename, traj_filename)

@@ -1,3 +1,9 @@
+"""
+Main entry point for the Py2PT package.
+
+This script calculates velocity power spectra and entropy using the Two-Phase Thermodynamics (2PT) method from molecular dynamics trajectories.
+It parses command-line arguments, loads the trajectory, performs velocity decomposition, computes density of states, and outputs entropy and spectra results.
+"""
 #==========================================================================
 # Imports
 #==========================================================================
@@ -20,6 +26,11 @@ from .entropy       import *
 
 
 def main():
+    """
+    Main function to run the Py2PT workflow from the command line.
+
+    Parses command-line arguments, loads the trajectory and topology, performs velocity decomposition, computes density of states, and calculates entropy using the 2PT method. Results are printed and saved to output files.
+    """
     #==========================================================================
     # Parse command-line arguments
     #==========================================================================
@@ -34,8 +45,10 @@ def main():
                       help='Path to the trajectory file (default: traj.trr)')
     parser.add_argument('--nproc', type=int, default=1, metavar='NPROC',
                       help='Number of processes to use for parallel computation (default: 1)')
-    parser.add_argument('--sigma', type=int, default=2, metavar='SIGMA',
-                      help='Rotational symmetry number (default: 2)')
+    parser.add_argument('--sigma', type=int, default=1, metavar='SIGMA',
+                      help='Rotational symmetry number (default: 1)')
+    parser.add_argument('--filter', action='store_true',
+                      help='Use FFT filtering (Blackman windowing + Savitsky-Golay)')
     
     args = parser.parse_args()
     temperature = args.temperature
@@ -121,9 +134,8 @@ def main():
     print(" "*15 + "VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA")
     print("="*80)
     print("\nDecomposing trajectory velocities...")
-    vt_all, vr_all, vv_all, omega_all, evl_all = decompose_trajectory_velocities(ag, is_linear=is_linear, n_workers=nproc)
+    vt_all, _, vv_all, omega_all, _ = decompose_trajectory_velocities(ag, is_linear=is_linear, n_workers=nproc)
     # omega_all has shape (n_frames, n_residues, 3) and contains the angular velocity vector for each molecule (residue) per frame
-    # evl_all has shape (n_frames, n_residues, 3) and contains the principal moments of inertia for each molecule (residue) per frame
 
     #==========================================================================
     # Two-Phase Thermodynamics (2PT) Analysis
@@ -140,10 +152,12 @@ def main():
 
     # Compute the density of states spectra for each velocity component
     print(f"Calculating power spectra at T = {temperature} K...")
-    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature=temperature)
-    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature=temperature)
-    _, vDOS     = density_of_states(vv_all, masses, dt, temperature=temperature)
-    
+    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature=temperature, FILTERING=args.filter)
+    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature=temperature, FILTERING=args.filter)
+    _, vDOS     = density_of_states(vv_all, masses, dt, temperature=temperature, FILTERING=args.filter)
+    # Calculate the total DOS
+    DOS_total = tDOS+rDOS+vDOS
+
     # Decompose density of states using 2PT method
     print("\nDecomposing density of states...")
     print("-"*40)
@@ -196,7 +210,7 @@ def main():
         {'freqs': freqs, 'DOS': DOS_rot_g, 'label': 'Rotational (g)'},
         {'freqs': freqs, 'DOS': DOS_rot_s, 'label': 'Rotational (s)'},
         {'freqs': freqs, 'DOS': vDOS, 'label': 'Vibrational'},
-        {'freqs': freqs, 'DOS': tDOS + rDOS + vDOS, 'label': 'Total'},
+        {'freqs': freqs, 'DOS': DOS_total, 'label': 'Total'},
     ]
     save_spectra_txt(spectra_list, filename='density_of_states.txt')
     plot_spectra(spectra_list, filename='density_of_states.png', xlim=[0,1500])
