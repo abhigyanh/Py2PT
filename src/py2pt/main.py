@@ -8,12 +8,13 @@ It parses command-line arguments, loads the trajectory, performs velocity decomp
 # Imports
 #==========================================================================
 # Dependency imports
-import MDAnalysis as mda
-from MDAnalysis import transformations
-import numpy as np
+import yaml
 import argparse
 import sys
 import os
+import numpy as np
+import MDAnalysis as mda
+from MDAnalysis import transformations
 
 # Internal imports
 from . import __version__
@@ -29,43 +30,43 @@ def main():
     """
     Main function to run the Py2PT workflow from the command line.
 
-    Parses command-line arguments, loads the trajectory and topology, performs velocity decomposition, computes density of states, and calculates entropy using the 2PT method. Results are printed and saved to output files.
+    Parses options, loads the trajectory and topology, 
+    performs velocity decomposition, computes density of states, and calculates entropy using the 2PT method. 
+    Results are printed and saved to output files.
     """
     #==========================================================================
     # Parse command-line arguments
     #==========================================================================
     parser = argparse.ArgumentParser(
-        description="Calculate velocity power spectra and entropy using 2PT method."
+        description="Calculate density of states spectra and entropy of a molecular dynamics trajectory using 2PT method."
     )
-    parser.add_argument('-T', '--temperature', type=float, default=300.0, metavar='TEMP',
-                      help='Temperature in Kelvin to use for the power spectrum calculation (default: 300)')
-    parser.add_argument('-s', '--topology', type=str, default='topol.tpr', metavar='TOPOLOGY',
-                      help='Path to the topology file (default: topol.tpr)')
-    parser.add_argument('-f', '--trajectory', type=str, default='traj.trr', metavar='TRAJECTORY',
-                      help='Path to the trajectory file (default: traj.trr)')
-    parser.add_argument('--nproc', type=int, default=1, metavar='NPROC',
-                      help='Number of processes to use for parallel computation (default: 1)')
-    parser.add_argument('--sigma', type=int, default=1, metavar='SIGMA',
-                      help='Rotational symmetry number (default: 1)')
-    parser.add_argument('--filter', action='store_true',
-                      help='Use FFT filtering (Blackman windowing + Savitsky-Golay)')
-    
+    parser.add_argument('-c', '--config', type=str, help='Path to the Py2PT config file (default: Py2PT.yml)', default='Py2PT.yml')
     args = parser.parse_args()
-    temperature = args.temperature
-    nproc = args.nproc
-    sigma = args.sigma
-
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)
+    
+    # Read the config file
+    with open(args.config, 'r') as config_file:
+        config = yaml.safe_load(config_file)
+
+    # Extract values from the config file
+    temperature = config.get('temperature', 300.0)
+    topology_file = config.get('topology', 'topol.tpr')
+    trajectory_file = config.get('trajectory', 'traj.trr')
+    nproc = config.get('nproc', 1)
+    sigma = config.get('sigma', 1)
+    FILTERING = config.get('filter', True)
+    filter_window = config.get('filter_window', 5)
+    CONSTRAINED_BONDS = config.get('constraints', False)
+    RENORMALIZE_DOS = config.get('renormalize', True)
+
     # Check if topology and trajectory files exist
-
-
-    if not os.path.isfile(args.topology):
-        print(f"Error: Topology file '{args.topology}' does not exist.")
+    if not os.path.isfile(topology_file):
+        print(f"Error: Topology file '{topology_file}' does not exist.")
         sys.exit(1)
-    if not os.path.isfile(args.trajectory):
-        print(f"Error: Trajectory file '{args.trajectory}' does not exist.")
+    if not os.path.isfile(trajectory_file):
+        print(f"Error: Trajectory file '{trajectory_file}' does not exist.")
         sys.exit(1)
 
 
@@ -75,8 +76,8 @@ def main():
 
     print("\n" + "="*80)
     print(f"Launching Py2PT version '{__version__}'")
-    print(f"Loading Topology: {args.topology}")
-    print(f"Loading Trajectory: {args.trajectory}")
+    print(f"Loading Topology: {topology_file}")
+    print(f"Loading Trajectory: {trajectory_file}")
     print(f"nproc: {nproc}")
 
     #==========================================================================
@@ -84,7 +85,7 @@ def main():
     #==========================================================================
     # Load the simulation universe
     try:
-        u = mda.Universe(args.topology, args.trajectory)
+        u = mda.Universe(topology_file, trajectory_file)
     except Exception as e:
         print("Could not load Universe.")
         print("Error:", e)
@@ -107,6 +108,7 @@ def main():
     total_mass = np.sum(masses)  # in amu
     n_atoms = len(ag)
     n_molecules = len(ag.residues)
+    atoms_per_molecule = int(n_atoms/n_molecules)
     molecule_mass = total_mass/n_molecules
     volume = mda.lib.mdamath.box_volume(u.dimensions)   # Calculate volume in Å³
     mass_density = (total_mass * amu) / (volume * angstrom**3)
@@ -118,10 +120,19 @@ def main():
     print(f"{'Time step:':<25} {dt:.3f} ps")
     print(f"{'Number of atoms:':<25} {n_atoms}")
     print(f"{'Number of molecules:':<25} {n_molecules}")
+    print(f"{'Atoms per molecule:':<25} {atoms_per_molecule}")
     print(f"{'Mass per molecule:':<25} {molecule_mass:.2f} amu")
     print(f"{'Simulation volume:':<25} {volume:.2f} Å³")
-    print(f"{'Mass density:':<25} {mass_density:.3f} kg/m³")
+    print(f"{'Mass density:':<25} {mass_density/1000:.3e} g/cm³")
     print(f"{'Temperature:':<25} {temperature} K")
+    # Print user-defined options
+    print("\n" + "="*80)
+    print(" "*30 + "USER DEFINED OPTIONS")
+    print("="*80)
+    print(f"{'FFT filtering:':<25} {FILTERING}")
+    print(f"{'FFT filter window:':<25} {filter_window}")
+    print(f"{'Constrained bonds:':<25} {CONSTRAINED_BONDS}")
+    print(f"{'Renomalize DOS:':<25} {RENORMALIZE_DOS}")
 
     #==========================================================================
     # Velocity decomposition and power spectra
@@ -133,8 +144,9 @@ def main():
     print("\n" + "="*80)
     print(" "*15 + "VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA")
     print("="*80)
-    print("\nDecomposing trajectory velocities...")
+    print("\nDecomposing velocities in trajectory...")
     vt_all, _, vv_all, omega_all, _ = decompose_trajectory_velocities(ag, is_linear=is_linear, n_workers=nproc)
+    print("Finished velocity decomposition.")
     # omega_all has shape (n_frames, n_residues, 3) and contains the angular velocity vector for each molecule (residue) per frame
 
     #==========================================================================
@@ -152,9 +164,40 @@ def main():
 
     # Compute the density of states spectra for each velocity component
     print(f"Calculating power spectra at T = {temperature} K...")
-    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature=temperature, FILTERING=args.filter)
-    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature=temperature, FILTERING=args.filter)
-    _, vDOS     = density_of_states(vv_all, masses, dt, temperature=temperature, FILTERING=args.filter)
+    if FILTERING:
+        print("INFO: Using Blackman windowing before FFT")
+        print("INFO: Using Savitsky-Golay filtering after FFT")
+    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature, FILTERING, filter_window)
+    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature, FILTERING, filter_window)
+    _, vDOS     = density_of_states(vv_all, masses, dt, temperature, FILTERING, filter_window)
+
+    # Integrate the power spectra
+    vt_integral = np.trapz(tDOS, freqs)
+    vr_integral = np.trapz(rDOS, freqs)
+    vv_integral = np.trapz(vDOS, freqs)
+
+    # Print DOS spectra results
+    print("\nIntegrated DOS Spectra:")
+    print("-"*40)
+    print(f"{'Translational:':<20} {vt_integral:>12.4f}")
+    print(f"{'Rotational:':<20} {vr_integral:>12.4f}")
+    print(f"{'Vibrational:':<20} {vv_integral:>12.4f}")
+    print("-"*40)
+    print(f"{'Total:':<20} {(vt_integral + vr_integral + vv_integral):>12.4f}")
+    
+    if RENORMALIZE_DOS:
+        # DOS re-normalization
+        print(f"\nINFO: Re-normalizing DOS by scaling factor to match theoretical DoS")
+        print(f"-- Scale the DOS to set the integral equal to 'real' degrees of freedom")
+        print(f"-- 3*nMol (for translation, rotation) and 3*nMol*(nAtomPerMol-2) for vibration")
+        print(f"-- This can lead to better convergence of entropy for short MD trajectories")
+        print(f"-- Reference: M.A. Caro, T. Laurila, and O. Lopez-Acevedo, The Journal of Chemical Physics 145, (2016).")
+
+        tDOS *= 3*n_molecules/np.trapz(tDOS, freqs)
+        rDOS *= 3*n_molecules/np.trapz(rDOS, freqs)
+        if CONSTRAINED_BONDS == False:
+            vDOS *= 3*n_molecules*(atoms_per_molecule-2)/np.trapz(vDOS, freqs)
+
     # Calculate the total DOS
     DOS_total = tDOS+rDOS+vDOS
 
@@ -167,8 +210,8 @@ def main():
     Delta_rot, f_rot, s0_rot, DOS_rot_g, DOS_rot_s = decompose_rotational_dos(
         freqs, rDOS, temperature, volume, n_molecules, molecule_mass
     )
-    Delta_vib, f_vib, s0_vib, DOS_vib_g, DOS_vib_s = decompose_vibrational_dos(
-        freqs, vDOS
+    Delta_vib, f_vib, s0_vib, _, _ = decompose_vibrational_dos(
+            freqs, vDOS
     )
 
     # Calculate entropies (skip zero frequency)
@@ -186,20 +229,6 @@ def main():
     S_vib = calculate_vibrational_entropy(
         freqs[1:], vDOS[1:], temperature
     )
-    
-    # Integrate the power spectra
-    vt_integral = np.trapz(tDOS, freqs)
-    vr_integral = np.trapz(rDOS, freqs)
-    vv_integral = np.trapz(vDOS, freqs)
-    
-    # Print DOS spectra results
-    print("\nIntegrated DOS Spectra:")
-    print("-"*40)
-    print(f"{'Translational:':<20} {vt_integral:>12.4f}")
-    print(f"{'Rotational:':<20} {vr_integral:>12.4f}")
-    print(f"{'Vibrational:':<20} {vv_integral:>12.4f}")
-    print("-"*40)
-    print(f"{'Total:':<20} {(vt_integral + vr_integral + vv_integral):>12.4f}")
     
     # Save and plot spectra
     spectra_list = [
@@ -219,10 +248,10 @@ def main():
     s0_total = s0_tr + s0_rot + s0_vib
     Delta_total = Delta_tr + Delta_rot + Delta_vib
     f_total = f_tr + f_rot + f_vib
-    S_total_mol = (S_tr + S_rot + S_vib) / n_molecules
     S_tr_mol = S_tr / n_molecules
     S_rot_mol = S_rot / n_molecules
     S_vib_mol = S_vib / n_molecules
+    S_total_mol = (S_tr + S_rot + S_vib) / n_molecules
 
     # Print 2PT results
     print("\n2PT Results:")

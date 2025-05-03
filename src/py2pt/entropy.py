@@ -128,17 +128,21 @@ def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray,
 
     DOS_tr_g = s0_tr/(1 + ((pi*s0_tr*nu)/(6*N*f_tr))**2)
     DOS_tr_s = DOS_tr - DOS_tr_g
+
+    # Ensure DOS_tr_g does not exceed DOS_tr
+    # Cap DOS_tr_g at DOS_tr where DOS_tr_g > DOS_tr
+    DOS_tr_g = np.where(DOS_tr_g > DOS_tr, DOS_tr, DOS_tr_g)
+    # Recalculate DOS_tr_s based on the capped DOS_tr_g
+    DOS_tr_s = DOS_tr - DOS_tr_g
     
     # If any negative values in DOS_rot_s, set them zero
-    tol = -0.5
+    tol = -1e-2
     if np.any(DOS_tr_s < tol):
         print(f"Negative values in DOS_tr_s detected (beyond tolerance = {tol})")
-        print(f"Old s0_tr: {s0_tr}")
+        print(f"s0_tr: {s0_tr}")
         # Print the largest negative value
         most_negative = np.min(DOS_tr_s)
         print(f"Most negative value in DOS_tr_s: {most_negative}")
-        neg_indices = np.where(DOS_tr_s < tol)
-        # DOS_tr_s[neg_indices] = 0
 
     if save_plot:
         spectra_list = [
@@ -187,16 +191,24 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
     DOS_rot_g = s0_rot/(1 + ((pi*s0_rot*nu)/(6*N*f_rot))**2)
     DOS_rot_s = DOS_rot - DOS_rot_g
 
-    # If any negative values in DOS_rot_s, set them zero
-    tol = -0.5
+    # If any negative values in DOS_rot_s, do the following compensation
+    tol = -1e-2
     if np.any(DOS_rot_s < tol):
-        print(f"Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
-        print(f"Old s0_rot: {s0_rot}")
+        print(f"- Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
+        print(f"s0_rot: {s0_rot}")
         # Print the largest negative value
         most_negative = np.min(DOS_rot_s)
         print(f"Most negative value in DOS_rot_s: {most_negative}")
-        neg_indices = np.where(DOS_rot_s < tol)
-        # DOS_rot_s[neg_indices] = 0
+        # Get the negative indices
+        neg_idx = np.where(DOS_rot_g > DOS_rot)
+        # Try two-phase decomposition again
+        print(f"Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.")
+        DOS_rot[neg_idx] += DOS_rot_g[neg_idx] - DOS_rot[neg_idx]
+        s0_rot = DOS_rot[0]
+        Delta_rot = calculate_delta(T, V, N, m, s0_rot)
+        f_rot = calculate_fluidicity(Delta_rot)
+        DOS_rot_g = s0_rot/(1 + ((pi*s0_rot*nu)/(6*N*f_rot))**2)
+        DOS_rot_s = DOS_rot - DOS_rot_g
 
     if save_plot:
         spectra_list = [
@@ -205,7 +217,6 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
             {'freqs': nu, 'DOS': DOS_rot, 'label': 'rot'}
         ]
         plot_spectra(spectra_list, filename='DoS_rot.png', xlim=[0,1000])
-
     return Delta_rot, f_rot, s0_rot, DOS_rot_g, DOS_rot_s
 
 def decompose_vibrational_dos(nu: np.ndarray, DOS_vib: np.ndarray,

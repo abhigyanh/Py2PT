@@ -179,5 +179,4 @@ def decompose_trajectory_velocities(atomgroup, is_linear=False, n_workers=4):
         vv_all[i, :, :] = vv
         omega_all[i, :, :] = omega
         evl_all[i, :, :] = evl
-    print("Finished trajectory decomposition.")
     return vt_all, vr_all, vv_all, omega_all, evl_all 

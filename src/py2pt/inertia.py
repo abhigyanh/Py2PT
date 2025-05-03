@@ -158,7 +158,7 @@ def sample_and_average_principal_moments(atomgroup, fraction=0.05, plot_histogra
     # Allocate array to store principal moments for each sample
     I_lk_samples = np.zeros((n_samples, n_molecules, 3))
     # Loop over sampled frames and calculate principal moments
-    for i, frame_idx in enumerate(tqdm(sampled_frames, desc="Calculating principal moments of inertia:", leave=False)):
+    for i, frame_idx in enumerate(tqdm(sampled_frames, desc="Calculating principal moments of inertia", leave=False)):
         atomgroup.universe.trajectory[frame_idx]
         I_lk_frame, _, _ = calculate_average_moments(atomgroup)
         I_lk_samples[i, :, :] = I_lk_frame
