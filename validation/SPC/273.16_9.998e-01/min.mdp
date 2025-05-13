@@ -1,0 +1,51 @@
+title                   = Energy minimization
+define                  =
+; Run parameters
+integrator              = steep       ; steepest descent energy minimization
+emtol                   = 1000.0      ; stop when max force < 1000.0 kJ/mol/nm
+emstep                  = 0.01        ; initial step-size
+nsteps                  = 50000       ; maximum number of steps
+
+; Output control
+nstxout                 = 5000        ; save coordinates every 5000 steps
+nstvout                 = 0           ; don't save velocities (not used in minimization)
+nstfout                 = 0           ; don't save forces
+nstenergy               = 5000        ; save energies every 5000 steps
+nstlog                  = 1000        ; update log file every 1000 steps
+
+; Center of mass motion removal
+comm-mode               = Linear       ; remove COM linear momentum
+nstcomm                 = 1
+
+; Bond parameters
+continuation            = no        
+constraint-algorithm    = lincs   
+constraints             = h-bonds       
+lincs-iter              = 1          ; accuracy of LINCS
+lincs-order             = 4          ; also related to accuracy
+
+; Nonbonded settings 
+cutoff-scheme           = Verlet    ; Buffered neighbor searching
+verlet-buffer-tolerance = 0.001     ; GROMACS: To ensure the error is below 0.1%, decrease verlet-buffer-tolerance to
+ns-type                 = grid      ; search neighboring grid cells
+nstlist                 = 10        ; largely irrelevant with Verlet scheme
+rcoulomb                = 0.9       ; short-range electrostatic cutoff (in nm)
+rvdw                    = 0.9       ; short-range van der Waals cutoff (in nm)
+DispCorr                = EnerPres  ; account for cut-off vdW scheme
+
+; Electrostatics
+coulombtype             = PME       ; Particle Mesh Ewald for long-range electrostatics
+pme-order               = 4         ; cubic interpolation
+fourierspacing          = 0.10      ; grid spacing for FFT
+
+; Temperature coupling is off for minimization
+tcoupl                  = no
+
+; Pressure coupling is off for minimization
+pcoupl                  = no
+
+; Periodic boundary conditions
+pbc                     = xyz           ; 3-D PBC
+
+; Velocity generation
+gen-vel                 = no 

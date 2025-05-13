@@ -1,0 +1,9 @@
+; Include SPC water topology
+#include "oplsaa.ff/forcefield.itp"
+#include "oplsaa.ff/spc.itp"
+
+[ system ]
+ SPC water
+
+[ molecules ]
+ SOL	500

@@ -1,0 +1,44 @@
+; Implemented from encad library version 25/xi/91, 
+; with 1,4 interaction setup modified by Michael Levitt.
+; In this forcefield, both coulombic and Lennard-Jones interactions
+; are completely excluded for 1,4 interaction sites.
+;
+; Vacuum version - scaled down charges.
+
+;
+[ defaults ]
+; nbfunc	comb-rule	gen-pairs	fudgeLJ	fudgeQQ
+  	1			3			yes			0.0		0.0
+
+; f3c water for use with the Encad force fields.
+
+[ atomtypes ]
+; name  at.num   mass      charge   ptype	sigma		epsilon
+   OW	    8 	 15.9994    0.0		A	3.16556e-01    	7.73161e-01
+   HW	    1 	  1.008     0.0		A 	4.45449e-02    	4.18400e-02
+
+[ moleculetype ]
+; molname	nrexcl
+SOL		2
+
+[ atoms ]
+;   nr   type  resnr residue  atom   cgnr     charge       mass
+     1	   OW	   1	SOL     OW      1      -0.82
+     2	   HW	   1	SOL    HW1      1       0.41
+     3	   HW	   1	SOL    HW2	    1       0.41
+
+[ bonds ]
+; i	j	funct	length	force.c.
+1	2	1	0.1	209200
+1	3	1	0.1	209200
+
+[ angles ]
+; i	j	k	funct	angle	force.c.
+2	1	3	1	109.47	502.08
+
+
+[ system ]
+ F3C water
+
+[ molecules ]
+ SOL	510

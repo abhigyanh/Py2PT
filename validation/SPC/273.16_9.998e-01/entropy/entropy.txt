@@ -1,0 +1,5 @@
+# (J/mol K)   Translational   Rotational   Vibrational   Total
+48.42
+11.50
+0.36
+60.27

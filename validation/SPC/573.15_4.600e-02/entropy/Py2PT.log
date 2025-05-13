@@ -1,0 +1,79 @@
+
+================================================================================
+Launching Py2PT version '1.0c'
+Loading Topology: ../prod.tpr
+Loading Trajectory: ../traj.trr
+nproc: 8
+INFO: Unwrapping trajectory in MDAnalysis
+
+================================================================================
+                              TRAJECTORY INFORMATION
+================================================================================
+Time step:                0.004 ps
+Number of atoms:          1500
+Number of molecules:      500
+Atoms per molecule:       3
+Mass per molecule:        18.02 amu
+Simulation volume:        324905.85 Å³
+Mass density:             4.604e-02 g/cm³
+Temperature:              573.15 K
+
+================================================================================
+                              USER DEFINED OPTIONS
+================================================================================
+FFT filtering:            True
+FFT filter window:        5
+Constrained bonds:        True
+Renomalize DOS:           True
+
+================================================================================
+               VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
+================================================================================
+
+Decomposing velocities in trajectory...
+Processing trajectory with 50001 frames using 8 processes...
+Finished velocity decomposition.
+
+================================================================================
+                         TWO-PHASE THERMODYNAMICS ANALYSIS
+================================================================================
+Principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
+Calculating power spectra at T = 573.15 K...
+INFO: Using Blackman windowing before FFT
+INFO: Using Savitsky-Golay filtering after FFT
+INFO: Performing zero correction on DOS spectra.
+INFO: Performing zero correction on DOS spectra.
+INFO: Performing zero correction on DOS spectra.
+
+Integrated DOS Spectra:
+----------------------------------------
+Translational:          1501.0803
+Rotational:             1872.3675
+Vibrational:              22.9827
+----------------------------------------
+Total:                  3396.4305
+
+INFO: Re-normalizing DOS by scaling factor to match theoretical DoS
+-- Scale the DOS to set the integral equal to 'real' degrees of freedom
+-- 3*nMol (for translation, rotation) and 3*nMol*(nAtomPerMol-2) for vibration
+-- This can lead to better convergence of entropy for short MD trajectories
+-- Reference: M.A. Caro, T. Laurila, and O. Lopez-Acevedo, The Journal of Chemical Physics 145, (2016).
+
+Decomposing density of states...
+----------------------------------------
+- Negative values in DOS_rot_s detected (beyond tolerance = -0.01)
+s0_rot: 1762.177340851687
+Most negative value in DOS_rot_s: -421.6476830214042
+Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
+
+Calculating component entropies...
+
+2PT Results:
+---------------------------------------------------------------------------------
+Parameter         Translational      Rotational     Vibrational           Total
+---------------------------------------------------------------------------------
+S_0 (ps)               11398.60         1762.18            0.61        13161.38
+Delta                   8.20751         1.26885         0.00000         9.47636
+Fluidicity              0.91654         0.59107         0.00000         1.50761
+S (J/molK)               107.01           51.67            0.62          159.29
+---------------------------------------------------------------------------------

@@ -1,4 +1,7 @@
 build/*
-validation/*
+*.trr
+*.tpr
+*.trr_offsets.npz
+*.trr_offsets.lock
 *.egg-info
 __pycache__

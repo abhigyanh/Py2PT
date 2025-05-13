@@ -1,0 +1,61 @@
+
+================================================================================
+Launching Py2PT version '1.0c'
+Loading Topology: ../prod.tpr
+Loading Trajectory: ../traj.trr
+nproc: 6
+INFO: Unwrapping trajectory in MDAnalysis
+
+================================================================================
+                              TRAJECTORY INFORMATION
+================================================================================
+Time step:                0.004 ps
+Number of atoms:          6000
+Number of molecules:      2000
+Mass per molecule:        18.02 amu
+Simulation volume:        59974.82 Å³
+Mass density:             997.594 kg/m³
+Temperature:              298.15 K
+
+================================================================================
+               VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
+================================================================================
+
+Decomposing trajectory velocities...
+Processing trajectory with 25001 frames using 6 processes...
+Finished trajectory decomposition.
+
+================================================================================
+                         TWO-PHASE THERMODYNAMICS ANALYSIS
+================================================================================
+Principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
+Calculating power spectra at T = 298.15 K...
+INFO: Performing zero correction on DOS spectra.
+INFO: Performing zero correction on DOS spectra.
+INFO: Performing zero correction on DOS spectra.
+
+Decomposing density of states...
+----------------------------------------
+Negative values in DOS_tr_s detected (beyond tolerance = -0.5)
+Old s0_tr: 753.8274285086891
+Most negative value in DOS_tr_s: -32.025754383575645
+
+Calculating component entropies...
+
+Integrated DOS Spectra:
+----------------------------------------
+Translational:          6000.8265
+Rotational:             7488.0947
+Vibrational:             148.0243
+----------------------------------------
+Total:                 13636.9454
+
+2PT Results:
+---------------------------------------------------------------------------------
+Parameter         Translational      Rotational     Vibrational           Total
+---------------------------------------------------------------------------------
+S_0 (ps)                 753.83           49.82            2.09          805.73
+Delta                   0.27286         0.01803         0.00000         0.29089
+Fluidicity              0.30792         0.07464         0.00000         0.38256
+S (J/molK)                53.86           14.23            0.28           68.38
+---------------------------------------------------------------------------------
