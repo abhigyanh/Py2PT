@@ -2,19 +2,19 @@ title                   =
 define                  =
 ; Run parameters
 integrator              = md-vv       ; velocity verlet integrator
-nsteps                  = 100000      ; 100,000 = 100 ps
-dt                      = 0.001       ; 2 fs
+nsteps                  = 15000       ; 15,000 = 30 ps
+dt                      = 0.002       ; 2 fs
 
 ; Output control
-nstxout                 = 4            ; save coordinates every 4 fs
-nstvout                 = 4            ; save velocities every  4 fs
+nstxout                 = 1            ; save coordinates every 4 fs
+nstvout                 = 1            ; save velocities every  4 fs
 nstfout                 = 0            ; don't save forces
-nstenergy               = 4            ; save energies every 4 fs
+nstenergy               = 1            ; save energies every 4 fs
 nstlog                  = 1000         ; update log file every 2 ps
 
 ; Center of mass motion removal
 comm-mode               = Linear       ; remove COM linear momentum
-nstcomm                 = 4
+nstcomm                 = 1
 
 ; Bond parameters
 continuation            = yes        

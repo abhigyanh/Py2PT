@@ -2,7 +2,7 @@
 ;	File 'mdout.mdp' was generated
 ;	By user: cyan (1000)
 ;	On host: fedora
-;	At date: Fri May  2 23:11:59 2025
+;	At date: Fri May 23 23:10:18 2025
 ;
 ;	Created by:
 ;	                     :-) GROMACS - gmx grompp, 2024.5 (-:
@@ -24,8 +24,8 @@ define                   =
 integrator               = md-vv
 ; Start time and timestep in ps
 tinit                    = 0
-dt                       = 0.001
-nsteps                   = 100000
+dt                       = 0.002
+nsteps                   = 15000
 ; For exact run continuation or redoing part of a run
 init-step                = 0
 ; Part index is updated automatically on checkpointing (keeps files separate)
@@ -37,7 +37,7 @@ mass-repartition-factor  = 1
 ; mode for center of mass motion removal
 comm-mode                = Linear
 ; number of steps for center of mass motion removal
-nstcomm                  = 4
+nstcomm                  = 1
 ; group(s) for center of mass motion removal
 comm-grps                = 
 
@@ -63,13 +63,13 @@ rtpi                     = 0.05
 
 ; OUTPUT CONTROL OPTIONS
 ; Output frequency for coords (x), velocities (v) and forces (f)
-nstxout                  = 4
-nstvout                  = 4
+nstxout                  = 1
+nstvout                  = 1
 nstfout                  = 0
 ; Output frequency for energies to log file and energy file
 nstlog                   = 1000
 nstcalcenergy            = 100
-nstenergy                = 4
+nstenergy                = 1
 ; Output frequency and precision for .xtc file
 nstxout-compressed       = 0
 compressed-x-precision   = 1000
@@ -175,7 +175,7 @@ annealing-temp           =
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen-vel                  = no
 gen-temp                 = 300
-gen-seed                 = -303565477
+gen-seed                 = -136316962
 
 ; OPTIONS FOR BONDS    
 constraints              = h-bonds
