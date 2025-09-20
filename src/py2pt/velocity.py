@@ -4,6 +4,9 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 from numba import njit
 
+from .spectrum import density_of_states, rotational_density_of_states
+
+
 @njit
 def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
     """
@@ -80,103 +83,220 @@ def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
     omega = np.dot(evt, pomega)
     
     # Calculate rotational and vibrational velocities
-    rot_vel = np.cross(omega, rel_pos)
-    vib_vel = rel_vel - rot_vel
-    return vt, rot_vel, vib_vel, omega, evl
+    vr = np.cross(omega, rel_pos)
+    vv = rel_vel - vr
+    return vt, vr, vv, omega, evl
 
-def decompose_velocity_for_residue(residue_atoms, is_linear=False):
-    """
-    Decompose the velocities of a residue's atoms into translational, rotational, and vibrational components.
-    Handles special cases for empty or single-atom residues.
-    Raises an error if atom velocities are not present.
-    """
-    n_atoms = len(residue_atoms)
-    if n_atoms == 0:
-        # No atoms: return empty arrays
-        return (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(3), np.zeros(3))
-    # Check for presence of velocities
-    if not hasattr(residue_atoms, 'velocities') or residue_atoms.velocities is None:
-        raise ValueError("Atom velocities are not present in the input. Please ensure your trajectory contains velocities.")
-    if n_atoms == 1:
-        # Single atom: only translational velocity is meaningful
-        vt = residue_atoms[0].velocity.copy()[None, :]
-        vr = np.zeros((1, 3))
-        vv = np.zeros((1, 3))
-        omega = np.zeros(3)
-        evl = np.zeros(3)
-        return vt, vr, vv, omega, evl
-    # Extract arrays for JIT-accelerated function
-    positions = residue_atoms.positions
-    velocities = residue_atoms.velocities
-    masses = residue_atoms.masses
-    vt, rot_vel, vib_vel, omega, evl = jit_decompose_velocity_core(positions, velocities, masses, is_linear)
-    return vt, rot_vel, vib_vel, omega, evl
+# def decompose_velocity_for_residue(residue_atoms, is_linear=False):
+#     """
+#     Decompose the velocities of a residue's atoms into translational, rotational, and vibrational components.
+#     Handles special cases for empty or single-atom residues.
+#     Raises an error if atom velocities are not present.
+#     """
+#     n_atoms = len(residue_atoms)
+#     if n_atoms == 0:
+#         # No atoms: return empty arrays
+#         return (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(3), np.zeros(3))
+#     # Check for presence of velocities
+#     if not hasattr(residue_atoms, 'velocities') or residue_atoms.velocities is None:
+#         raise ValueError("Atom velocities are not present in the input. Please ensure your trajectory contains velocities.")
+#     if n_atoms == 1:
+#         # Single atom: only translational velocity is meaningful
+#         vt = residue_atoms[0].velocity.copy()[None, :]
+#         vr = np.zeros((1, 3))
+#         vv = np.zeros((1, 3))
+#         omega = np.zeros(3)
+#         evl = np.zeros(3)
+#         return vt, vr, vv, omega, evl
+#     # Extract arrays for JIT-accelerated function
+#     positions = residue_atoms.positions
+#     velocities = residue_atoms.velocities
+#     masses = residue_atoms.masses
+#     vt, rot_vel, vib_vel, omega, evl = jit_decompose_velocity_core(positions, velocities, masses, is_linear)
+#     return vt, rot_vel, vib_vel, omega, evl
 
-def _decompose_frame(args):
+def _decompose_residue_velocities_framewise(positions, velocities, masses, is_linear, n_frames):
     """
-    Helper function to decompose velocities for a single frame (for multiprocessing).
-    Loads the frame, selects atoms, and decomposes velocities for each residue.
+    Decompose velocity time series into components frame by frame.
+    
+    Parameters
+    ----------
+    positions : np.ndarray
+        Positions array of shape (n_frames, n_atoms, 3)
+    velocities : np.ndarray
+        Velocities array of shape (n_frames, n_atoms, 3)
+    masses : np.ndarray
+        Masses array of shape (n_atoms,)
+    is_linear : bool
+        Whether the molecule is linear
+    n_frames : int
+        Number of frames to process
+        
+    Returns
+    -------
+    tuple
+        (vt, vr, vv, omega, evl) arrays with time dimension
     """
-    topology, trajectory, selection, is_linear, frame_idx = args
-    u = mda.Universe(topology, trajectory)
-    ag = u.select_atoms(selection)
-    u.trajectory[frame_idx]
-    vt_list, vr_list, vv_list = [], [], []
-    omega_list = []
-    evl_list = []
-    for residue in ag.residues:
-        vt, vr, vv, omega, evl = decompose_velocity_for_residue(residue.atoms, is_linear=is_linear)
-        vt_list.append(vt)
-        vr_list.append(vr)
-        vv_list.append(vv)
-        omega_list.append(omega)
-        evl_list.append(evl)
-    # Concatenate all atoms' velocities for this frame
-    vt_all = np.concatenate(vt_list, axis=0)
-    vr_all = np.concatenate(vr_list, axis=0)
-    vv_all = np.concatenate(vv_list, axis=0)
-    omega_all = np.stack(omega_list, axis=0)  # shape (n_residues, 3)
-    evl_all = np.stack(evl_list, axis=0)      # shape (n_residues, 3)
-    return vt_all, vr_all, vv_all, omega_all, evl_all
+    n_atoms = positions.shape[1]
+    vt = np.zeros((n_frames, n_atoms, 3))
+    vr = np.zeros((n_frames, n_atoms, 3))
+    vv = np.zeros((n_frames, n_atoms, 3))
+    omega = np.zeros((n_frames, 3))
+    evl = np.zeros((n_frames, 3))
+    
+    # Process each frame
+    for frame in range(n_frames):
+        vt[frame], vr[frame], vv[frame], omega[frame], evl[frame] = jit_decompose_velocity_core(
+            positions[frame], velocities[frame], masses, is_linear
+        )
+    return vt, vr, vv, omega, evl
 
-def decompose_trajectory_velocities(atomgroup, is_linear=False, n_workers=4):
+# Legacy frame-wise decomposition function, kept for reference
+# def _decompose_frame(args):
+#     """
+#     Helper function to decompose velocities for a single frame (for multiprocessing).
+#     Loads the frame, selects atoms, and decomposes velocities for each residue.
+#     """
+#     topology, trajectory, selection, is_linear, frame_idx = args
+#     u = mda.Universe(topology, trajectory)
+#     ag = u.select_atoms(selection)
+#     u.trajectory[frame_idx]
+#     vt_list, vr_list, vv_list = [], [], []
+#     omega_list = []
+#     evl_list = []
+#     for residue in ag.residues:
+#         vt, vr, vv, omega, evl = decompose_velocity_for_residue(residue.atoms, is_linear=is_linear)
+#         vt_list.append(vt)
+#         vr_list.append(vr)
+#         vv_list.append(vv)
+#         omega_list.append(omega)
+#         evl_list.append(evl)
+#     # Concatenate all atoms' velocities for this frame
+#     vt_all = np.concatenate(vt_list, axis=0)
+#     vr_all = np.concatenate(vr_list, axis=0)
+#     vv_all = np.concatenate(vv_list, axis=0)
+#     omega_all = np.stack(omega_list, axis=0)  # shape (n_residues, 3)
+#     evl_all = np.stack(evl_list, axis=0)      # shape (n_residues, 3)
+#     return vt_all, vr_all, vv_all, omega_all, evl_all
+
+def _process_residue_wrapper(args):
+    """Helper function to unpack arguments for multiprocessing"""
+    return _process_residue(*args)
+
+def _process_residue(positions, velocities, masses, is_linear, dt, temperature, FILTERING, filter_window, residue_info):
     """
-    Decompose the velocities of all atoms in a trajectory into translational, rotational, and vibrational components.
-    Uses multiprocessing for efficiency on long trajectories.
-    Returns arrays of shape (n_frames, n_atoms, 3) for each component, (n_frames, n_residues, 3) for angular velocities, and (n_frames, n_residues, 3) for principal moments.
+    Process a single residue to calculate its translational, vibrational and rotational DOS.
+    
+    Parameters
+    ----------
+    positions : np.ndarray
+        Pre-loaded positions array for this residue (n_frames, n_atoms, 3)
+    velocities : np.ndarray
+        Pre-loaded velocities array for this residue (n_frames, n_atoms, 3)
+    masses : np.ndarray
+        Masses array for this residue's atoms
+    is_linear : bool
+        Whether molecules should be treated as linear
+    dt : float
+        Time step between frames in ps
+    temperature : float
+        Temperature in K
+    FILTERING : bool
+        Whether to apply Blackman window and filtering
+    filter_window : int
+        Window size for Savitsky-Golay filter
+    residue_info : tuple
+        (resname, resid) for progress tracking
+        
+    Returns
+    -------
+    freqs : numpy.ndarray
+        Frequencies at which DOS is evaluated
+    tDOS : numpy.ndarray
+        Translational density of states
+    vDOS : numpy.ndarray
+        Vibrational density of states
+    rDOS : numpy.ndarray
+        Rotational density of states
     """
-    universe = atomgroup.universe
-    n_frames = len(universe.trajectory)
-    n_atoms = len(atomgroup)
-    n_residues = len(atomgroup.residues)
-    # Preallocate arrays for all frames and atoms
-    vt_all = np.zeros((n_frames, n_atoms, 3))
-    vr_all = np.zeros((n_frames, n_atoms, 3))
-    vv_all = np.zeros((n_frames, n_atoms, 3))
-    omega_all = np.zeros((n_frames, n_residues, 3))
-    evl_all = np.zeros((n_frames, n_residues, 3))
-    topology = universe.filename
-    trajectory = universe.trajectory.filename
-    # Determine atom selection string
-    selection = atomgroup.selections[0] if hasattr(atomgroup, 'selections') else 'all'
-    if hasattr(atomgroup, 'string'):
-        selection = atomgroup.string
-    print(f"Processing trajectory with {n_frames} frames using {n_workers} processes...")
-    # Prepare arguments for each frame
-    args_list = [(topology, trajectory, selection, is_linear, i) for i in range(n_frames)]
-    # Use multiprocessing to process frames in parallel, with safe shutdown on Ctrl+C
-    try:
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            results = list(tqdm(executor.map(_decompose_frame, args_list), total=n_frames, desc="Processing trajectory"))
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt: shutting down pool...")
-        executor.shutdown(wait=False, cancel_futures=True)
-        raise
-    # Collect results into output arrays
-    for i, (vt, vr, vv, omega, evl) in enumerate(results):
-        vt_all[i, :, :] = vt
-        vr_all[i, :, :] = vr
-        vv_all[i, :, :] = vv
-        omega_all[i, :, :] = omega
-        evl_all[i, :, :] = evl
-    return vt_all, vr_all, vv_all, omega_all, evl_all 
+    resname, resid = residue_info
+    n_frames = positions.shape[0]
+    
+    # Decompose velocities frame by frame
+    vt, vr, vv, omega, evl = _decompose_residue_velocities_framewise(
+        positions, velocities, masses, is_linear, n_frames
+    )
+    
+    # Calculate DOS for each component
+    freqs, tDOS = density_of_states(vt, masses, dt, temperature, FILTERING, filter_window)
+    _, vDOS = density_of_states(vv, masses, dt, temperature, FILTERING, filter_window)
+    
+    # For rotational DOS, we need time-averaged principal moments
+    I_avg = np.mean(evl, axis=0)  # Average over frames
+    _, rDOS = rotational_density_of_states(omega, I_avg, dt, temperature, FILTERING, filter_window)
+
+    return freqs, tDOS, vDOS, rDOS
+
+
+def decompose_trajectory_velocities(residue_data, is_linear=False, n_workers=4, dt=1.0, temperature=300.0, 
+                               FILTERING=False, filter_window=5):
+    """
+    Decompose the velocities of all atoms in a trajectory into translational, rotational, and vibrational components,
+    then compute the density of states (DOS) for each component per molecule.
+    Uses multiprocessing for parallel processing of residues.
+    
+    Parameters
+    ----------
+    residue_data : list
+        List of tuples containing pre-loaded trajectory data for each residue.
+        Each tuple contains:
+        [0] positions: array of shape (n_frames, n_atoms, 3)
+        [1] velocities: array of shape (n_frames, n_atoms, 3)
+        [2] masses: array of shape (n_atoms,)
+        [3] info: tuple of (resname, resid)
+    is_linear : bool, optional
+        Whether molecules should be treated as linear
+    n_workers : int, optional
+        Number of parallel workers
+    dt : float, optional
+        Time step between frames in ps
+    temperature : float, optional
+        Temperature in K for DOS calculation
+    FILTERING : bool, optional
+        Whether to apply Blackman window and Savitsky-Golay filtering
+    filter_window : int, optional
+        Window size for Savitsky-Golay filter
+        
+    Returns
+    -------
+    tuple
+        (freqs, tDOS_total, vDOS_total, rDOS_total) where:
+        freqs: frequency array
+        tDOS_total: total translational DOS
+        vDOS_total: total vibrational DOS
+        rDOS_total: total rotational DOS
+    """
+    n_residues = len(residue_data)
+    
+    # Parallelize over residues
+    results = []
+    with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        # Create list of arguments for each residue - data is already in tuple form
+        process_args = [(positions, velocities, masses, is_linear, dt, temperature, FILTERING, filter_window, info)
+                       for positions, velocities, masses, info in residue_data]
+        for res_dos in tqdm(executor.map(_process_residue_wrapper, process_args), 
+                           total=n_residues, desc="DoS calculation"):
+            results.append(res_dos)
+    
+    # Sum up all DOS components
+    freqs = results[0][0]  # Frequencies will be the same for all residues
+    tDOS_total = np.zeros_like(results[0][1])
+    vDOS_total = np.zeros_like(results[0][2])
+    rDOS_total = np.zeros_like(results[0][3])
+    
+    for _, tDOS, vDOS, rDOS in results:
+        tDOS_total += tDOS
+        vDOS_total += vDOS
+        rDOS_total += rDOS
+        
+    return freqs, tDOS_total, vDOS_total, rDOS_total

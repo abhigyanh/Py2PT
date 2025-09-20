@@ -1,15 +1,20 @@
 
 ================================================================================
-Launching Py2PT version '1.0c'
+Launching Py2PT version '1.2'
 Loading Topology: ../prod.tpr
 Loading Trajectory: ../traj.trr
 nproc: 6
-INFO: Unwrapping trajectory in MDAnalysis
+Loading trajectory...
+Loading trajectory data into memory (this may take a while)...
+Preparing arrays for 25001 frames and 1500 atoms...
+Creating in-memory trajectory...
+Trajectory loading complete
 
 ================================================================================
                               TRAJECTORY INFORMATION
 ================================================================================
 Time step:                0.004 ps
+Selection string:         all
 Number of atoms:          1500
 Number of molecules:      500
 Atoms per molecule:       3
@@ -22,7 +27,7 @@ Temperature:              298.15 K
                               USER DEFINED OPTIONS
 ================================================================================
 FFT filtering:            True
-FFT filter window:        9
+FFT filter window:        11
 Constrained bonds:        True
 Renomalize DOS:           True
 
@@ -30,30 +35,36 @@ Renomalize DOS:           True
                VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
 ================================================================================
 
-Decomposing velocities in trajectory...
-Processing trajectory with 25001 frames using 6 processes...
-Finished velocity decomposition.
+Memory usage estimates:
+- Total molecule data: 0.90 GB
+- Parent process: 0.90 GB (keeps all data)
+- Per worker (~84 molecules): 2.70 GB
+- Peak total memory: 17.10 GB
+  (parent + 6 workers with FFT overhead)
+Note: Each worker processes multiple molecules in parallel
+
+Performing velocity decomposition and DOS calculation...
+Finished velocity decomposition and DOS calculation.
+INFO: Performing zero correction on DOS spectra
 
 ================================================================================
                          TWO-PHASE THERMODYNAMICS ANALYSIS
 ================================================================================
 Principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
-Calculating power spectra at T = 298.15 K...
+
+Calculated power spectra at T = 298.15 K
 INFO: Using Blackman windowing before FFT
 INFO: Using Savitsky-Golay filtering after FFT
-INFO: Performing zero correction on DOS spectra.
-INFO: Performing zero correction on DOS spectra.
-INFO: Performing zero correction on DOS spectra.
 
 Integrated DOS Spectra:
 ----------------------------------------
-Translational:          1496.6367
-Rotational:             1858.7311
-Vibrational:              58.4952
+Translational:          1496.6196
+Rotational:             1891.9544
+Vibrational:               0.0000
 ----------------------------------------
-Total:                  3413.8630
+Total:                  3388.5740
 
-INFO: Re-normalizing DOS by scaling factor to match theoretical DoS
+INFO: Re-normalizing DoS by scaling factor to match theoretical DOF
 -- Scale the DOS to set the integral equal to 'real' degrees of freedom
 -- 3*nMol (for translation, rotation) and 3*nMol*(nAtomPerMol-2) for vibration
 -- This can lead to better convergence of entropy for short MD trajectories
@@ -61,10 +72,13 @@ INFO: Re-normalizing DOS by scaling factor to match theoretical DoS
 
 Decomposing density of states...
 ----------------------------------------
+INFO: Using bisect method to solve for fluidicity
+INFO: Using bisect method to solve for fluidicity
 - Negative values in DOS_rot_s detected (beyond tolerance = -0.01)
-s0_rot: 11.14743644489433
-Most negative value in DOS_rot_s: -0.5967772146646038
+s0_rot: 9.20138073020678
+Most negative value in DOS_rot_s: -0.45466417811691784
 Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
+INFO: Using bisect method to solve for fluidicity
 
 Calculating component entropies...
 
@@ -72,8 +86,8 @@ Calculating component entropies...
 ---------------------------------------------------------------------------------
 Parameter         Translational      Rotational     Vibrational           Total
 ---------------------------------------------------------------------------------
-S_0 (ps)                 177.47           11.15            0.78          189.40
-Delta                   0.25695         0.01614         0.00000         0.27309
-Fluidicity              0.29922         0.07021         0.00000         0.36943
-S (J/molK)                52.90           11.31            0.44           64.65
+S_0 (ps)                 178.76            9.20            0.00          187.96
+Delta                   0.25881         0.01332         0.00000         0.27214
+Fluidicity              0.30025         0.06311         0.00000         0.36337
+S (J/molK)                52.91           11.15            0.00           64.06
 ---------------------------------------------------------------------------------

@@ -1,9 +1,11 @@
 temperature: 298.15
 topology: ../prod.tpr
 trajectory: ../traj.trr
+selection: all
 nproc: 6
 sigma: 2
 filter: true
-filter_window: 9
+filter_window: 11
 constraints: true
 renormalize: true
+zero_correction: true

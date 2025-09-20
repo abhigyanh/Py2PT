@@ -12,7 +12,9 @@ import yaml
 import argparse
 import sys
 import os
+import gc
 import numpy as np
+
 import MDAnalysis as mda
 from MDAnalysis import transformations
 
@@ -54,6 +56,7 @@ def main():
     temperature = config.get('temperature', 300.0)
     topology_file = config.get('topology', 'topol.tpr')
     trajectory_file = config.get('trajectory', 'traj.trr')
+    selection_string = config.get('selection', 'all')
     nproc = config.get('nproc', 1)
     sigma = config.get('sigma', 1)
     FILTERING = config.get('filter', True)
@@ -84,28 +87,61 @@ def main():
     #==========================================================================
     # Load and prepare trajectory
     #==========================================================================
-    # Load the simulation universe
+        # Load the simulation universe
     try:
+        print("Loading trajectory...")
         u = mda.Universe(topology_file, trajectory_file)
+        
+        print("Loading trajectory data into memory (this may take a while)...")
+        # Get frame count and atom count for array pre-allocation
+        n_frames = len(u.trajectory)
+        n_atoms = u.trajectory[0].n_atoms  # Get atom count from first frame
+        print(f"Preparing arrays for {n_frames} frames and {n_atoms} atoms...")
+        
+        # Pre-allocate numpy arrays instead of using lists
+        coordinates = np.empty((n_frames, n_atoms, 3), dtype=np.float32)
+        velocities = np.empty((n_frames, n_atoms, 3), dtype=np.float32)
+        dimensions = np.empty((n_frames, 6), dtype=np.float32)
+        
+        # Load data frame by frame with verification
+        for i, ts in enumerate(tqdm(u.trajectory, desc="Reading frames")):
+            # Force data loading with .copy()
+            try:
+                frame_pos = ts.positions.copy()
+                frame_vel = ts.velocities.copy()
+                frame_dim = ts.dimensions.copy()
+                coordinates[i] = frame_pos
+                velocities[i] = frame_vel
+                dimensions[i] = frame_dim  
+            except Exception as e:
+                print(f"\nError loading frame {i}: {str(e)}", flush=True)
+                raise
+        # Create new universe with pre-allocated arrays
+        print("Creating in-memory trajectory...")
+        u = mda.Universe(
+            topology_file,
+            coordinates,
+            velocities=velocities,
+            dimensions=dimensions,
+            in_memory=True,
+            dt=u.trajectory.dt
+        )
+        print("Trajectory loading complete")
+        
     except Exception as e:
         print("Could not load Universe.")
         print("Error:", e)
         sys.exit(1)
 
-    # Unwrap the trajectory to remove periodic boundary artifacts
-    print("INFO: Unwrapping trajectory in MDAnalysis")
-    workflow = [transformations.unwrap(u.atoms)]
-    u.trajectory.add_transformations(*workflow)
-
     # Selection of atoms by string
-    ag = u.select_atoms("all")
+    ag = u.select_atoms(selection_string)
 
     #==========================================================================
     # System properties
     #==========================================================================
     # Basic properties
     dt = u.trajectory.dt
-    masses = u.atoms.masses
+    masses = ag.atoms.masses
     total_mass = np.sum(masses)  # in amu
     n_atoms = len(ag)
     n_molecules = len(ag.residues)
@@ -119,6 +155,7 @@ def main():
     print(" "*30 + "TRAJECTORY INFORMATION")
     print("="*80)
     print(f"{'Time step:':<25} {dt:.3f} ps")
+    print(f"{'Selection string:':<25} {selection_string}")
     print(f"{'Number of atoms:':<25} {n_atoms}")
     print(f"{'Number of molecules:':<25} {n_molecules}")
     print(f"{'Atoms per molecule:':<25} {atoms_per_molecule}")
@@ -141,14 +178,60 @@ def main():
     # Set is_linear as appropriate for your system (False for most molecules)
     is_linear = False
 
-    # Decompose velocities into translational, rotational, and vibrational components
+    # Pre-load trajectory data
     print("\n" + "="*80)
     print(" "*15 + "VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA")
     print("="*80)
-    print("\nDecomposing velocities in trajectory...")
-    vt_all, _, vv_all, omega_all, _ = decompose_trajectory_velocities(ag, is_linear=is_linear, n_workers=nproc)
-    print("Finished velocity decomposition.")
-    # omega_all has shape (n_frames, n_residues, 3) and contains the angular velocity vector for each molecule (residue) per frame
+
+    # Initialize arrays to store all trajectory data
+    n_frames = len(u.trajectory)
+    residue_data = []
+    
+    # Extract data for each residue from in-memory trajectory
+    for residue in tqdm(ag.residues, desc="Splicing trajectory by selection group"):
+        atom_indices = residue.atoms.indices
+        # Use direct array slicing for all frames
+        pos = u.trajectory.coordinate_array[:, atom_indices, :].copy()
+        vel = u.trajectory.velocity_array[:, atom_indices, :].copy()
+        residue_data.append((
+            pos,                            # positions array
+            vel,                            # velocities array
+            residue.atoms.masses,           # masses array
+            (residue.resname, residue.resid)  # residue info
+        ))
+    
+    # Clean up the large arrays and universe to free memory
+    del coordinates, velocities, dimensions, u
+    gc.collect()
+    
+    # Calculate memory usage based on empirical observations
+    base_traj_size = sum(pos.nbytes + vel.nbytes + masses.nbytes for pos, vel, masses, _ in residue_data) / 1e9
+    peak_memory = base_traj_size * 2 * (nproc + 1)  # Empirical formula: trajectory_size * 2 * (nprocesses + 1)
+    print("\n Max memory usage estimates:")
+    print(f"- Base trajectory size: {base_traj_size:.2f} GB")
+    print(f"- Peak memory usage: {peak_memory:.2f} GB")
+    print(f"  (based on formula: trajectory_size * 2 * ({nproc} processes + 1 parent))\n")
+    
+    # Calculate all DOS components in parallel over molecules
+    print("Performing velocity decomposition and DOS calculation...")
+    freqs, tDOS, vDOS, rDOS = decompose_trajectory_velocities(
+        residue_data,
+        is_linear=is_linear, 
+        n_workers=nproc,
+        dt=dt,
+        temperature=temperature,
+        FILTERING=FILTERING,
+        filter_window=filter_window
+    )
+    print("Finished velocity decomposition and DOS calculation.")
+    
+    # Apply zero correction if requested
+    if ZERO_CORRECTION:
+        print("INFO: Performing zero correction on DOS spectra")
+        high_freq_mask = freqs > 120
+        tDOS -= np.mean(tDOS[high_freq_mask])
+        rDOS -= np.mean(rDOS[high_freq_mask])
+        vDOS -= np.mean(vDOS[high_freq_mask])
 
     #==========================================================================
     # Two-Phase Thermodynamics (2PT) Analysis
@@ -163,14 +246,11 @@ def main():
     I_1, I_2, I_3 = np.mean(I_lk, axis=0)
     print(f"Principal moments of inertia: I_1 = {I_1:.4f}, I_2 = {I_2:.4f}, I_3 = {I_3:.4f} amu·Å²")
 
-    # Compute the density of states spectra for each velocity component
-    print(f"Calculating power spectra at T = {temperature} K...")
+    # Print DOS calculation parameters
+    print(f"\nCalculated power spectra at T = {temperature} K")
     if FILTERING:
         print("INFO: Using Blackman windowing before FFT")
         print("INFO: Using Savitsky-Golay filtering after FFT")
-    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
-    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
-    _, vDOS     = density_of_states(vv_all, masses, dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
 
     # Integrate the power spectra
     vt_integral = np.trapz(tDOS, freqs)

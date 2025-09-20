@@ -4,14 +4,31 @@ from scipy.signal import savgol_filter
 
 from .constants import *
 
-def density_of_states(vel, masses, dt, temperature, FILTERING=False, ZERO_CORRECTION=False, filter_window=5):
+def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_window=5):
     """
     Compute the mass-weighted power spectrum of a velocity array.
-    vel: (n_frames, n_atoms, 3)
-    masses: (n_atoms,)
-    dt: time step between frames
-    temperature: temperature in K (if provided, multiplies by 2/(kB*T))
-    Returns: freqs, dos_sum
+    
+    Parameters
+    ----------
+    vel : np.ndarray
+        Velocity array, shape (n_frames, n_atoms, 3)
+    masses : np.ndarray
+        Atom masses, shape (n_atoms,)
+    dt : float
+        Time step between frames in ps
+    temperature : float
+        Temperature in K
+    FILTERING : bool, optional
+        Whether to apply Blackman window and Savitsky-Golay filtering
+    filter_window : int, optional
+        Window size for Savitsky-Golay filter if FILTERING is True
+        
+    Returns
+    -------
+    freqs : np.ndarray
+        Frequency array
+    dos_sum : np.ndarray
+        Density of states array
     """
     conv1 = angstrom**2 * amu / eV / ps**2
     n_frames, n_atoms, n_dim = vel.shape
@@ -22,7 +39,7 @@ def density_of_states(vel, masses, dt, temperature, FILTERING=False, ZERO_CORREC
         window = np.blackman(n_frames)
     else:
         window = np.ones(n_frames)
-    for j in tqdm(range(n_atoms), desc="Computing velocity spectra", leave=False):
+    for j in range(n_atoms):
         for k in range(n_dim):
             windowed_signal = vel[:, j, k] * window
             fft_result = np.fft.rfft(windowed_signal)
@@ -33,42 +50,70 @@ def density_of_states(vel, masses, dt, temperature, FILTERING=False, ZERO_CORREC
     if FILTERING:
         dos_sum = savgol_filter(dos_sum, window_length=filter_window, polyorder=3)
     dos_sum = dos_sum * 2/(kB*temperature) * conv1
-    if ZERO_CORRECTION:
-        print("INFO: Performing zero correction on DOS spectra.")
-        dos_sum -= np.mean(dos_sum[np.where(freqs > 120)])
     return freqs, dos_sum
 
-def rotational_density_of_states(omega_all, I_lk, dt, temperature, FILTERING=False, ZERO_CORRECTION=False, filter_window=5):
+def rotational_density_of_states(omega, I_lk, dt, temperature, FILTERING=False, filter_window=5):
     """
-    Compute the rotational density of states rDOS_sum(nu) from angular velocities and principal moments of inertia.
-    omega_all: (n_frames, n_molecules, 3) - angular velocities for each molecule and frame
-    I_lk: (n_molecules, 3) - principal moments of inertia for each molecule
-    dt: time step between frames
-    temperature: temperature in K
-    Returns: freqs, rDOS_sum
+    Compute the rotational density of states rDOS_sum(nu) from angular velocities and principal moments of inertia
+    for a single molecule.
+    
+    Parameters
+    ----------
+    omega : np.ndarray
+        Angular velocities with shape (n_frames, 3) for a single molecule
+    I_lk : np.ndarray
+        Principal moments of inertia with shape (3,) for a single molecule
+    dt : float 
+        Time step between frames in ps
+    temperature : float
+        Temperature in K
+    FILTERING : bool, optional
+        Whether to apply Blackman window
+    ZERO_CORRECTION : bool, optional
+        Whether to apply zero correction
+    filter_window : int, optional
+        Window size for Savitsky-Golay filter
+        
+    Returns
+    -------
+    freqs : np.ndarray
+        Frequency array
+    rDOS_sum : np.ndarray
+        Rotational density of states
+        
+    Raises
+    ------
+    ValueError
+        If omega has wrong shape (must be 2D) or I_lk is not 1D
     """
     conv1 = angstrom**2 * amu / eV / ps**2
-    n_frames, n_molecules, n_dim = omega_all.shape
-    n_freqs = n_frames // 2 + 1  # for rfft
+    n_frames, n_dim = omega.shape
+    
+    # Validate input shapes for single molecule
+    if omega.ndim != 2:
+        raise ValueError("omega must have shape (n_frames, 3) for single molecule")
+    if I_lk.ndim != 1:
+        raise ValueError("I_lk must have shape (3,) for single molecule")
+    if n_dim != 3 or len(I_lk) != 3:
+        raise ValueError("Both omega and I_lk must have 3 components")
+        
+    n_freqs = n_frames // 2 + 1
     fft_normalization = dt / n_frames
     if FILTERING:
         window = np.blackman(n_frames)
     else:
         window = np.ones(n_frames)
+        
     rDOS_sum = np.zeros(n_freqs)
-    for j in tqdm(range(n_molecules), desc="Computing angular velocity spectra", leave=False):
-        for k in range(n_dim):
-            omega_k = omega_all[:, j, k]
-            windowed_signal = omega_k * window
-            fft_result = np.fft.rfft(windowed_signal)
-            power_raw = np.abs(fft_result) ** 2
-            power_norm = power_raw * fft_normalization/np.mean(window**2)
-            rDOS_sum += power_norm * I_lk[k]
+    # Process single molecule
+    for k in range(n_dim):
+        windowed_signal = omega[:, k] * window
+        fft_result = np.fft.rfft(windowed_signal)
+        power_raw = np.abs(fft_result) ** 2
+        power_norm = power_raw * fft_normalization/np.mean(window**2)
+        rDOS_sum += power_norm * I_lk[k]
     freqs = np.fft.rfftfreq(n_frames, d=dt)
     if FILTERING:
         rDOS_sum = savgol_filter(rDOS_sum, window_length=filter_window, polyorder=3)
     rDOS_sum = rDOS_sum * 2/(kB*temperature) * conv1
-    if ZERO_CORRECTION:
-        print("INFO: Performing zero correction on DOS spectra.")
-        rDOS_sum -= np.mean(rDOS_sum[np.where(freqs > 120)])
     return freqs, rDOS_sum 
