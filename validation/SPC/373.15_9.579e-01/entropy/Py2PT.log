@@ -34,6 +34,12 @@ Renomalize DOS:           True
 ================================================================================
                VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
 ================================================================================
+
+ Max memory usage estimates:
+- Base trajectory size: 1.80 GB
+- Peak memory usage: 25.20 GB
+  (based on formula: trajectory_size * 2 * (6 processes + 1 parent))
+
 Performing velocity decomposition and DOS calculation...
 Finished velocity decomposition and DOS calculation.
 
