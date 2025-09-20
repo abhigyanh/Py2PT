@@ -61,12 +61,15 @@ def _equation_of_fluidicity(f: float, delta: float) -> float:
         return float('inf')  # Return infinity for invalid values
     
     # Handle special cases
-    if delta == 0:
-        return float('inf') if f > 0 else -2  # f must be 0 when delta is 0
     if f == 0:
         return -2  # The equation evaluates to -2 when f=0
+    # if delta == 0:
+    #     return float('inf') if f > 0 else -2  # f must be 0 when delta is 0
+    # if f == 1:
+    #     return 2  # Force positive value at f=1 to ensure different signs
     
-    # Calculate the equation terms carefully to avoid numerical issues
+    # The fluidicity equation is:
+    # 2δ^(-9/2)f^(15/2) - 6δ^(-3)f^5 - δ^(-3/2)f^(7/2) + 6δ^(-3/2)f^(5/2) + 2f - 2 = 0
     try:
         term1 = 2 * (delta**(-9/2)) * (f**(15/2))
         term2 = -6 * (delta**(-3)) * (f**5)
@@ -77,7 +80,7 @@ def _equation_of_fluidicity(f: float, delta: float) -> float:
     except (ZeroDivisionError, RuntimeWarning):
         return float('inf')
 
-def calculate_fluidicity(delta: float) -> float:
+def calculate_fluidicity(delta: float, method: str = 'bisect') -> float:
     """
     Calculate the fluidicity parameter by solving the fluidicity equation.
     
@@ -91,8 +94,10 @@ def calculate_fluidicity(delta: float) -> float:
     float
         Fluidicity parameter (between 0 and 1)
     """
+    method = 'bisect'
+    print(f"INFO: Using {method} method to solve for fluidicity")
     return root_scalar(lambda f: _equation_of_fluidicity(f, delta), 
-                      method='brentq', bracket=[0,1]).root
+                      method=method, bracket=[1e-6, 1]).root
 
 def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray, 
                               T: float, V: float, N: float, m: float,

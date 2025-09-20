@@ -3,7 +3,7 @@
 Launching Py2PT version '1.0c'
 Loading Topology: ../prod.tpr
 Loading Trajectory: ../traj.trr
-nproc: 10
+nproc: 6
 INFO: Unwrapping trajectory in MDAnalysis
 
 ================================================================================
@@ -31,7 +31,7 @@ Renomalize DOS:           True
 ================================================================================
 
 Decomposing velocities in trajectory...
-Processing trajectory with 25001 frames using 10 processes...
+Processing trajectory with 25001 frames using 6 processes...
 Finished velocity decomposition.
 
 ================================================================================
@@ -62,8 +62,8 @@ INFO: Re-normalizing DOS by scaling factor to match theoretical DoS
 Decomposing density of states...
 ----------------------------------------
 - Negative values in DOS_rot_s detected (beyond tolerance = -0.01)
-s0_rot: 11.147436444896531
-Most negative value in DOS_rot_s: -0.5967772146570702
+s0_rot: 11.14743644489433
+Most negative value in DOS_rot_s: -0.5967772146646038
 Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
 
 Calculating component entropies...

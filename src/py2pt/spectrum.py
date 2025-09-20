@@ -4,7 +4,7 @@ from scipy.signal import savgol_filter
 
 from .constants import *
 
-def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_window=5):
+def density_of_states(vel, masses, dt, temperature, FILTERING=False, ZERO_CORRECTION=False, filter_window=5):
     """
     Compute the mass-weighted power spectrum of a velocity array.
     vel: (n_frames, n_atoms, 3)
@@ -33,11 +33,12 @@ def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_wind
     if FILTERING:
         dos_sum = savgol_filter(dos_sum, window_length=filter_window, polyorder=3)
     dos_sum = dos_sum * 2/(kB*temperature) * conv1
-    print("INFO: Performing zero correction on DOS spectra.")
-    dos_sum -= np.mean(dos_sum[np.where(freqs > 120)])
+    if ZERO_CORRECTION:
+        print("INFO: Performing zero correction on DOS spectra.")
+        dos_sum -= np.mean(dos_sum[np.where(freqs > 120)])
     return freqs, dos_sum
 
-def rotational_density_of_states(omega_all, I_lk, dt, temperature, FILTERING=False, filter_window=5):
+def rotational_density_of_states(omega_all, I_lk, dt, temperature, FILTERING=False, ZERO_CORRECTION=False, filter_window=5):
     """
     Compute the rotational density of states rDOS_sum(nu) from angular velocities and principal moments of inertia.
     omega_all: (n_frames, n_molecules, 3) - angular velocities for each molecule and frame
@@ -67,6 +68,7 @@ def rotational_density_of_states(omega_all, I_lk, dt, temperature, FILTERING=Fal
     if FILTERING:
         rDOS_sum = savgol_filter(rDOS_sum, window_length=filter_window, polyorder=3)
     rDOS_sum = rDOS_sum * 2/(kB*temperature) * conv1
-    print("INFO: Performing zero correction on DOS spectra.")
-    rDOS_sum -= np.mean(rDOS_sum[np.where(freqs > 120)])
+    if ZERO_CORRECTION:
+        print("INFO: Performing zero correction on DOS spectra.")
+        rDOS_sum -= np.mean(rDOS_sum[np.where(freqs > 120)])
     return freqs, rDOS_sum 

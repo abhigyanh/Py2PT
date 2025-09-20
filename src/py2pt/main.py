@@ -60,6 +60,7 @@ def main():
     filter_window = config.get('filter_window', 5)
     CONSTRAINED_BONDS = config.get('constraints', False)
     RENORMALIZE_DOS = config.get('renormalize', True)
+    ZERO_CORRECTION = config.get('zero_correction', False)
 
     # Check if topology and trajectory files exist
     if not os.path.isfile(topology_file):
@@ -158,7 +159,7 @@ def main():
 
     # Principal moments of inertia calculation
     # Use trajectory-averaged moments for entropy calculation
-    I_lk = sample_and_average_principal_moments(ag, fraction=0.01, plot_histogram=True)
+    I_lk = sample_and_average_principal_moments(ag, fraction=0.01, plot_histogram=False)
     I_1, I_2, I_3 = np.mean(I_lk, axis=0)
     print(f"Principal moments of inertia: I_1 = {I_1:.4f}, I_2 = {I_2:.4f}, I_3 = {I_3:.4f} amu·Å²")
 
@@ -167,9 +168,9 @@ def main():
     if FILTERING:
         print("INFO: Using Blackman windowing before FFT")
         print("INFO: Using Savitsky-Golay filtering after FFT")
-    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature, FILTERING, filter_window)
-    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature, FILTERING, filter_window)
-    _, vDOS     = density_of_states(vv_all, masses, dt, temperature, FILTERING, filter_window)
+    freqs, tDOS = density_of_states(vt_all, masses, dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
+    _, rDOS     = rotational_density_of_states(omega_all, [I_1,I_2,I_3], dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
+    _, vDOS     = density_of_states(vv_all, masses, dt, temperature, FILTERING, ZERO_CORRECTION, filter_window)
 
     # Integrate the power spectra
     vt_integral = np.trapz(tDOS, freqs)
@@ -187,7 +188,7 @@ def main():
     
     if RENORMALIZE_DOS:
         # DOS re-normalization
-        print(f"\nINFO: Re-normalizing DOS by scaling factor to match theoretical DoS")
+        print(f"\nINFO: Re-normalizing DoS by scaling factor to match theoretical DOF")
         print(f"-- Scale the DOS to set the integral equal to 'real' degrees of freedom")
         print(f"-- 3*nMol (for translation, rotation) and 3*nMol*(nAtomPerMol-2) for vibration")
         print(f"-- This can lead to better convergence of entropy for short MD trajectories")
