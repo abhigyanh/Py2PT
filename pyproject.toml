@@ -17,7 +17,8 @@ dependencies = [
     "matplotlib",
     "tqdm",
     "numba",
-    "scipy"
+    "scipy",
+    "pyyaml",
 ]
 
 [project.scripts]
