@@ -28,8 +28,10 @@ def plot_spectra(spectra_list, filename='output.png', xlim=[0,1500]):
         label = spectrum['label']
         plt.plot(freqs, dos, label=label, linestyle='-', color=colors[idx])
     
-    plt.xlabel(r'Wavenumber, $\nu$ (cm$^{-1}$)')
-    plt.ylabel(r'DoS, $S_{\nu}$ (cm)')
+    plt.gca().set(
+        xlabel = r'Wavenumber, $\nu$ (cm$^{-1}$)',
+        ylabel = r'DoS, $S_{\nu}$ (cm)',
+    )
     plt.legend()
     if xlim is not None:
         plt.xlim(xlim)
@@ -69,3 +71,53 @@ def save_spectra_txt(spectra_list, filename='dos.txt'):
     
     # Save to file
     np.savetxt(filename, combined_data, fmt='%.6f', header=header, comments='')
+
+
+def plot_histogram(I_lk, filename, bins=100, dpi=300):
+    """
+    Plot per-residue principal moments of inertia as histograms.
+
+    Parameters
+    ----------
+    I_lk : np.ndarray
+        Array of principal moments per molecule/residue, shape (n_molecules, 3).
+        Columns correspond to (I_1, I_2, I_3).
+    filename : str, optional
+        Output image filename.
+    bins : int, optional
+        Number of histogram bins, by default 100.
+    dpi : int, optional
+        Figure DPI, by default 300.
+    """
+    I_lk = np.asarray(I_lk)
+    if I_lk.ndim != 2 or I_lk.shape[1] != 3:
+        raise ValueError(f"I_lk must have shape (n_molecules, 3); got {I_lk.shape}")
+
+    fig, ax = plt.subplots(1, 1, figsize=(7.2, 4.2))
+
+    labels = [r"$I_1$", r"$I_2$", r"$I_3$"]
+    palette = plt.cm.Set2(np.linspace(0.0, 1.0, 3))
+    data = [I_lk[:, 0], I_lk[:, 1], I_lk[:, 2]]
+    # Draw the histogram
+    ax.hist(
+        data,
+        bins=bins,
+        density=False,
+        histtype="stepfilled",
+        alpha=0.55,
+        color=palette,
+        edgecolor="black",
+        linewidth=0.6,
+        label=labels,
+    )
+    ax.set(
+        title = "Distribution of principal moments of inertia (per molecule)",
+        xlabel = r"Moment of inertia (amu·Å$^2$)",
+        ylabel = "Count (Num. molecules/resids)",
+    )
+    ax.grid(True, alpha=0.25)
+    ax.legend(frameon=False)
+
+    fig.tight_layout()
+    fig.savefig(filename, dpi=dpi)
+    plt.close(fig)

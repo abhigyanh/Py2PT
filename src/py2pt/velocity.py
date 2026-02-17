@@ -4,7 +4,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 from numba import njit
 
-from .spectrum import density_of_states, rotational_density_of_states
+from .spectrum import translational_density_of_states, vibrational_density_of_states, rotational_density_of_states
 
 
 @njit
@@ -25,14 +25,12 @@ def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
 
     Returns
     -------
-    vt : np.ndarray
-        Translational velocities, shape (n_atoms, 3)
-    rot_vel : np.ndarray
-        Rotational velocities, shape (n_atoms, 3)
-    vib_vel : np.ndarray
-        Vibrational velocities, shape (n_atoms, 3)
+    com_vel : np.ndarray
+        Translational center-of-mass velocity, shape (3,)
     omega : np.ndarray
         Angular velocity vector, shape (3,)
+    vib_vel : np.ndarray
+        Vibrational velocities, shape (n_atoms, 3)
     evl : np.ndarray
         Principal moments of inertia, shape (3,)
     """
@@ -42,11 +40,6 @@ def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
     com_vel = np.sum(masses[:, None] * velocities, axis=0) / np.sum(masses)
     rel_pos = positions - com_pos
     rel_vel = velocities - com_vel
-    
-    # Assign translational velocity (center of mass velocity) to all atoms
-    vt = np.empty((n_atoms, 3), dtype=positions.dtype)
-    for i in range(n_atoms):
-        vt[i, :] = com_vel
     
     # Calculate angular momentum and inertia tensor
     ang_mom = np.sum(masses[:, None] * np.cross(rel_pos, rel_vel), axis=0)
@@ -84,36 +77,9 @@ def jit_decompose_velocity_core(positions, velocities, masses, is_linear):
     
     # Calculate rotational and vibrational velocities
     vr = np.cross(omega, rel_pos)
-    vv = rel_vel - vr
-    return vt, vr, vv, omega, evl
-
-# def decompose_velocity_for_residue(residue_atoms, is_linear=False):
-#     """
-#     Decompose the velocities of a residue's atoms into translational, rotational, and vibrational components.
-#     Handles special cases for empty or single-atom residues.
-#     Raises an error if atom velocities are not present.
-#     """
-#     n_atoms = len(residue_atoms)
-#     if n_atoms == 0:
-#         # No atoms: return empty arrays
-#         return (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(3), np.zeros(3))
-#     # Check for presence of velocities
-#     if not hasattr(residue_atoms, 'velocities') or residue_atoms.velocities is None:
-#         raise ValueError("Atom velocities are not present in the input. Please ensure your trajectory contains velocities.")
-#     if n_atoms == 1:
-#         # Single atom: only translational velocity is meaningful
-#         vt = residue_atoms[0].velocity.copy()[None, :]
-#         vr = np.zeros((1, 3))
-#         vv = np.zeros((1, 3))
-#         omega = np.zeros(3)
-#         evl = np.zeros(3)
-#         return vt, vr, vv, omega, evl
-#     # Extract arrays for JIT-accelerated function
-#     positions = residue_atoms.positions
-#     velocities = residue_atoms.velocities
-#     masses = residue_atoms.masses
-#     vt, rot_vel, vib_vel, omega, evl = jit_decompose_velocity_core(positions, velocities, masses, is_linear)
-#     return vt, rot_vel, vib_vel, omega, evl
+    vib_vel = rel_vel - vr
+    
+    return com_vel, omega, vib_vel, evl
 
 def _decompose_residue_velocities_framewise(positions, velocities, masses, is_linear, n_frames):
     """
@@ -135,49 +101,20 @@ def _decompose_residue_velocities_framewise(positions, velocities, masses, is_li
     Returns
     -------
     tuple
-        (vt, vr, vv, omega, evl) arrays with time dimension
+        (vt, vv, omega, evl) arrays with time dimension
     """
     n_atoms = positions.shape[1]
-    vt = np.zeros((n_frames, n_atoms, 3))
-    vr = np.zeros((n_frames, n_atoms, 3))
-    vv = np.zeros((n_frames, n_atoms, 3))
+    vt = np.zeros((n_frames, 3))
     omega = np.zeros((n_frames, 3))
+    vv = np.zeros((n_frames, n_atoms, 3))
     evl = np.zeros((n_frames, 3))
     
     # Process each frame
     for frame in range(n_frames):
-        vt[frame], vr[frame], vv[frame], omega[frame], evl[frame] = jit_decompose_velocity_core(
+        vt[frame], omega[frame], vv[frame], evl[frame] = jit_decompose_velocity_core(
             positions[frame], velocities[frame], masses, is_linear
         )
-    return vt, vr, vv, omega, evl
-
-# Legacy frame-wise decomposition function, kept for reference
-# def _decompose_frame(args):
-#     """
-#     Helper function to decompose velocities for a single frame (for multiprocessing).
-#     Loads the frame, selects atoms, and decomposes velocities for each residue.
-#     """
-#     topology, trajectory, selection, is_linear, frame_idx = args
-#     u = mda.Universe(topology, trajectory)
-#     ag = u.select_atoms(selection)
-#     u.trajectory[frame_idx]
-#     vt_list, vr_list, vv_list = [], [], []
-#     omega_list = []
-#     evl_list = []
-#     for residue in ag.residues:
-#         vt, vr, vv, omega, evl = decompose_velocity_for_residue(residue.atoms, is_linear=is_linear)
-#         vt_list.append(vt)
-#         vr_list.append(vr)
-#         vv_list.append(vv)
-#         omega_list.append(omega)
-#         evl_list.append(evl)
-#     # Concatenate all atoms' velocities for this frame
-#     vt_all = np.concatenate(vt_list, axis=0)
-#     vr_all = np.concatenate(vr_list, axis=0)
-#     vv_all = np.concatenate(vv_list, axis=0)
-#     omega_all = np.stack(omega_list, axis=0)  # shape (n_residues, 3)
-#     evl_all = np.stack(evl_list, axis=0)      # shape (n_residues, 3)
-#     return vt_all, vr_all, vv_all, omega_all, evl_all
+    return vt, omega, vv, evl
 
 def _process_residue_wrapper(args):
     """Helper function to unpack arguments for multiprocessing"""
@@ -221,24 +158,25 @@ def _process_residue(positions, velocities, masses, is_linear, dt, temperature, 
     """
     resname, resid = residue_info
     n_frames = positions.shape[0]
+    molecule_mass = np.sum(masses)
     
     # Decompose velocities frame by frame
-    vt, vr, vv, omega, evl = _decompose_residue_velocities_framewise(
+    vt, omega, vv, evl = _decompose_residue_velocities_framewise(
         positions, velocities, masses, is_linear, n_frames
     )
     
     # Calculate DOS for each component
-    freqs, tDOS = density_of_states(vt, masses, dt, temperature, FILTERING, filter_window)
-    _, vDOS = density_of_states(vv, masses, dt, temperature, FILTERING, filter_window)
+    freqs, tDOS = translational_density_of_states(vt, molecule_mass, dt, temperature, FILTERING, filter_window)
+    _, vDOS = vibrational_density_of_states(vv, masses, dt, temperature, FILTERING, filter_window)
     
     # For rotational DOS, we need time-averaged principal moments
     I_avg = np.mean(evl, axis=0)  # Average over frames
     _, rDOS = rotational_density_of_states(omega, I_avg, dt, temperature, FILTERING, filter_window)
 
-    return freqs, tDOS, vDOS, rDOS
+    return freqs, tDOS, vDOS, rDOS, I_avg
 
 
-def decompose_trajectory_velocities(residue_data, is_linear=False, n_workers=4, dt=1.0, temperature=300.0, 
+def decompose_trajectory_velocities(residue_data, is_linear=False, n_workers=1, dt=0.001, temperature=300.0, 
                                FILTERING=False, filter_window=5):
     """
     Decompose the velocities of all atoms in a trajectory into translational, rotational, and vibrational components,
@@ -270,11 +208,12 @@ def decompose_trajectory_velocities(residue_data, is_linear=False, n_workers=4, 
     Returns
     -------
     tuple
-        (freqs, tDOS_total, vDOS_total, rDOS_total) where:
+        (freqs, tDOS_total, vDOS_total, rDOS_total, I_lk) where:
         freqs: frequency array
         tDOS_total: total translational DOS
         vDOS_total: total vibrational DOS
         rDOS_total: total rotational DOS
+        I_lk: principal moments of inertia averaged over frames, per residue, shape (n_residues, 3)
     """
     n_residues = len(residue_data)
     
@@ -293,10 +232,12 @@ def decompose_trajectory_velocities(residue_data, is_linear=False, n_workers=4, 
     tDOS_total = np.zeros_like(results[0][1])
     vDOS_total = np.zeros_like(results[0][2])
     rDOS_total = np.zeros_like(results[0][3])
+    I_lk = np.zeros((n_residues, results[0][4].shape[0]), dtype=results[0][4].dtype)
     
-    for _, tDOS, vDOS, rDOS in results:
+    for i, (_, tDOS, vDOS, rDOS, I_avg) in enumerate(results):
         tDOS_total += tDOS
         vDOS_total += vDOS
         rDOS_total += rDOS
+        I_lk[i] = I_avg
         
-    return freqs, tDOS_total, vDOS_total, rDOS_total
+    return freqs, tDOS_total, vDOS_total, rDOS_total, I_lk

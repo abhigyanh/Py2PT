@@ -204,17 +204,9 @@ def main():
     del coordinates, velocities, dimensions, u
     gc.collect()
     
-    # Calculate memory usage based on empirical observations
-    base_traj_size = sum(pos.nbytes + vel.nbytes + masses.nbytes for pos, vel, masses, _ in residue_data) / 1e9
-    peak_memory = base_traj_size * 2 * (nproc + 1)  # Empirical formula: trajectory_size * 2 * (nprocesses + 1)
-    print("\n Max memory usage estimates:")
-    print(f"- Base trajectory size: {base_traj_size:.2f} GB")
-    print(f"- Peak memory usage: {peak_memory:.2f} GB")
-    print(f"  (based on formula: trajectory_size * 2 * ({nproc} processes + 1 parent))\n")
-    
     # Calculate all DOS components in parallel over molecules
     print("Performing velocity decomposition and DOS calculation...")
-    freqs, tDOS, vDOS, rDOS = decompose_trajectory_velocities(
+    freqs, tDOS, vDOS, rDOS, I_lk = decompose_trajectory_velocities(
         residue_data,
         is_linear=is_linear, 
         n_workers=nproc,
@@ -241,10 +233,11 @@ def main():
     print("="*80)
 
     # Principal moments of inertia calculation
-    # Use trajectory-averaged moments for entropy calculation
-    I_lk = sample_and_average_principal_moments(ag, fraction=0.01, plot_histogram=False)
+    # Use moments averaged over frames and residues from velocity decomposition
     I_1, I_2, I_3 = np.mean(I_lk, axis=0)
-    print(f"Principal moments of inertia: I_1 = {I_1:.4f}, I_2 = {I_2:.4f}, I_3 = {I_3:.4f} amu·Å²")
+    print(f"Averaged principal moments of inertia: I_1 = {I_1:.4f}, I_2 = {I_2:.4f}, I_3 = {I_3:.4f} amu·Å²")
+    plot_histogram(I_lk, filename="principal_moments_of_inertia.png")
+
 
     # Print DOS calculation parameters
     print(f"\nCalculated power spectra at T = {temperature} K")
@@ -292,23 +285,23 @@ def main():
         freqs, rDOS, temperature, volume, n_molecules, molecule_mass
     )
     Delta_vib, f_vib, s0_vib, _, _ = decompose_vibrational_dos(
-            freqs, vDOS
+        freqs, vDOS
     )
 
-    # Calculate entropies (skip zero frequency)
-    print("\nCalculating component entropies...")
+    # Calculate entropies (not skipping zero frequency yet, need to think)
+    print("\nCalculating component-wise entropies:")
     S_tr = calculate_translational_entropy(
-        freqs[1:], DOS_tr_s[1:], DOS_tr_g[1:],
+        freqs, DOS_tr_s, DOS_tr_g,
         f_tr, Delta_tr, molecule_mass, n_molecules, volume, temperature
     )
 
     S_rot = calculate_rotational_entropy(
-        freqs[1:], DOS_rot_s[1:], DOS_rot_g[1:],
+        freqs, DOS_rot_s, DOS_rot_g,
         I_1, I_2, I_3, sigma, temperature
     )
 
     S_vib = calculate_vibrational_entropy(
-        freqs[1:], vDOS[1:], temperature
+        freqs, vDOS, temperature
     )
     
     # Save and plot spectra
@@ -353,15 +346,6 @@ def main():
         header='(J/mol K)   Translational   Rotational   Vibrational   Total',
         fmt='%.2f'
     )
-
-    # Check for negative entropy (which indicates a problem)
-    if S_tr < 0:
-        print("\n" + "!"*80)
-        print("WARNING: Translational entropy is negative!")
-        print("This indicates a problem with the calculation.")
-        print("Please report this bug with a reproducible example.")
-        print("!"*80)
-        sys.exit(4)
 
 if __name__ == "__main__":
     main()

@@ -4,7 +4,55 @@ from scipy.signal import savgol_filter
 
 from .constants import *
 
-def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_window=5):
+def translational_density_of_states(vt, molecule_mass, dt, temperature, FILTERING=False, filter_window=5):
+    """
+    Compute the mass-weighted power spectrum of a velocity array.
+    
+    Parameters
+    ----------
+    vt : np.ndarray
+        Translational (center of mass) velocity array, shape (n_frames, 3)
+    mass : np.float
+        Molecular masses, float
+    dt : float
+        Time step between frames in ps
+    temperature : float
+        Temperature in K
+    FILTERING : bool, optional
+        Whether to apply Blackman window and Savitsky-Golay filtering
+    filter_window : int, optional
+        Window size for Savitsky-Golay filter if FILTERING is True
+        
+    Returns
+    -------
+    freqs : np.ndarray
+        Frequency array
+    tdos_sum : np.ndarray
+        Density of states array
+    """
+    conv1 = angstrom**2 * amu / eV / ps**2
+    n_frames, n_dim = vt.shape
+    n_freqs = n_frames // 2 + 1  # for rfft
+    fft_normalization = dt / n_frames
+    tdos_sum = np.zeros(n_freqs)
+    if FILTERING:
+        window = np.blackman(n_frames)
+    else:
+        window = np.ones(n_frames)
+    for k in range(n_dim):
+        windowed_signal = vt[:, k] * window
+        fft_result = np.fft.rfft(windowed_signal)
+        power_raw = np.abs(fft_result)**2
+        power_norm = power_raw*fft_normalization/np.mean(window**2)
+        tdos_sum += power_norm * molecule_mass
+    freqs = np.fft.rfftfreq(n_frames, d=dt)
+    if FILTERING:
+        tdos_sum = savgol_filter(tdos_sum, window_length=filter_window, polyorder=3)
+    tdos_sum = tdos_sum * 2/(kB*temperature) * conv1
+    return freqs, tdos_sum
+
+
+def vibrational_density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_window=5):
     """
     Compute the mass-weighted power spectrum of a velocity array.
     
@@ -27,14 +75,14 @@ def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_wind
     -------
     freqs : np.ndarray
         Frequency array
-    dos_sum : np.ndarray
+    vdos_sum : np.ndarray
         Density of states array
     """
     conv1 = angstrom**2 * amu / eV / ps**2
     n_frames, n_atoms, n_dim = vel.shape
     n_freqs = n_frames // 2 + 1  # for rfft
     fft_normalization = dt / n_frames
-    dos_sum = np.zeros(n_freqs)
+    vdos_sum = np.zeros(n_freqs)
     if FILTERING:
         window = np.blackman(n_frames)
     else:
@@ -45,12 +93,12 @@ def density_of_states(vel, masses, dt, temperature, FILTERING=False, filter_wind
             fft_result = np.fft.rfft(windowed_signal)
             power_raw = np.abs(fft_result)**2
             power_norm = power_raw*fft_normalization/np.mean(window**2)
-            dos_sum += power_norm * masses[j]
+            vdos_sum += power_norm * masses[j]
     freqs = np.fft.rfftfreq(n_frames, d=dt)
     if FILTERING:
-        dos_sum = savgol_filter(dos_sum, window_length=filter_window, polyorder=3)
-    dos_sum = dos_sum * 2/(kB*temperature) * conv1
-    return freqs, dos_sum
+        vdos_sum = savgol_filter(vdos_sum, window_length=filter_window, polyorder=3)
+    vdos_sum = vdos_sum * 2/(kB*temperature) * conv1
+    return freqs, vdos_sum
 
 def rotational_density_of_states(omega, I_lk, dt, temperature, FILTERING=False, filter_window=5):
     """
