@@ -2,13 +2,13 @@
 ;	File 'mdout.mdp' was generated
 ;	By user: cyan (1000)
 ;	On host: fedora
-;	At date: Fri May 23 23:10:18 2025
+;	At date: Tue Feb 17 23:25:38 2026
 ;
 ;	Created by:
-;	                     :-) GROMACS - gmx grompp, 2024.5 (-:
+;	                     :-) GROMACS - gmx grompp, 2025.4 (-:
 ;	
-;	Executable:   /usr/local/gromacs/bin/gmx
-;	Data prefix:  /usr/local/gromacs
+;	Executable:   /home/cyan/.local/gromacs-2025/bin/gmx
+;	Data prefix:  /home/cyan/.local/gromacs-2025
 ;	Working dir:  /home/cyan/Github/Py2PT/validation/SPC-2000/298.15_9.968e-01
 ;	Command line:
 ;	  gmx grompp -f prod.mdp -c eq.gro -t eq.cpt -p topol.top -o prod.tpr -maxwarn 1
@@ -25,7 +25,7 @@ integrator               = md-vv
 ; Start time and timestep in ps
 tinit                    = 0
 dt                       = 0.002
-nsteps                   = 15000
+nsteps                   = 25000
 ; For exact run continuation or redoing part of a run
 init-step                = 0
 ; Part index is updated automatically on checkpointing (keeps files separate)
@@ -175,7 +175,7 @@ annealing-temp           =
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen-vel                  = no
 gen-temp                 = 300
-gen-seed                 = -136316962
+gen-seed                 = 2086138360
 
 ; OPTIONS FOR BONDS    
 constraints              = h-bonds
@@ -264,6 +264,8 @@ restraint-lambdas        =
 temperature-lambdas      = 
 calc-lambda-neighbors    = 1
 init-lambda-weights      = 
+init-lambda-counts       = 
+init-wl-histogram-counts = 
 dhdl-print-energy        = no
 sc-function              = beutler
 sc-alpha                 = 0
@@ -327,3 +329,6 @@ qmmm-cp2k-active         = false
 
 ; Colvars bias
 colvars-active           = false
+
+; Neural Network potential
+nnpot-active             = false

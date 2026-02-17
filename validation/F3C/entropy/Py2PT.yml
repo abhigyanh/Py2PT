@@ -1,9 +1,11 @@
 temperature: 298
 topology: ../nvt.tpr
-trajectory: ../traj.trr
-nproc: 10
+trajectory: ../traj.whole.trr
+selection: not name MW
+nproc: 6
 sigma: 2
 filter: true
-filter_window: 9
+filter_window: 5
 constraints: false
 renormalize: true
+zero_correction: false

@@ -26,6 +26,7 @@ from .velocity      import *
 from .inertia       import *
 from .spectrum      import *
 from .entropy       import *
+from .energy        import *
 
 
 def main():
@@ -287,23 +288,37 @@ def main():
     Delta_vib, f_vib, s0_vib, _, _ = decompose_vibrational_dos(
         freqs, vDOS
     )
+    print("DOS decomposition finished.")
 
-    # Calculate entropies (not skipping zero frequency yet, need to think)
-    print("\nCalculating component-wise entropies:")
+    # Calculate entropies
     S_tr = calculate_translational_entropy(
         freqs, DOS_tr_s, DOS_tr_g,
         f_tr, Delta_tr, molecule_mass, n_molecules, volume, temperature
     )
-
     S_rot = calculate_rotational_entropy(
         freqs, DOS_rot_s, DOS_rot_g,
         I_1, I_2, I_3, sigma, temperature
     )
-
     S_vib = calculate_vibrational_entropy(
         freqs, vDOS, temperature
     )
     
+    # Calculate energies
+    E_tr = calculate_translational_energy(
+        freqs, DOS_tr_s, DOS_tr_g, temperature
+    )
+    E_rot = calculate_rotational_energy(
+        freqs, DOS_rot_s, DOS_rot_g, temperature
+    )
+    E_vib = calculate_vibrational_energy(
+        freqs, vDOS, temperature
+    )
+    E_zpe = calculate_zero_point_energy(
+        freqs, vDOS, temperature
+    )
+    kinetic = (3*n_molecules)/(kB*temperature*eVtoJ) * (1 - f_tr/2 - f_rot/2)
+    E_minus_EMD = (-kinetic + E_tr + E_rot + E_vib)
+
     # Save and plot spectra
     spectra_list = [
         {'freqs': freqs, 'DOS': tDOS, 'label': 'Translational'},
@@ -327,24 +342,43 @@ def main():
     S_vib_mol = S_vib / n_molecules
     S_total_mol = (S_tr + S_rot + S_vib) / n_molecules
 
+    # Calculate totals for energy row (convert J to kJ)
+    kinetic_mol = (kinetic / n_molecules) / 1000
+    E_tr_mol  = (E_tr / n_molecules)  / 1000
+    E_rot_mol = (E_rot / n_molecules) / 1000
+    E_vib_mol = (E_vib / n_molecules) / 1000
+    E_zpe_mol = (E_zpe / n_molecules) / 1000
+    E_minus_EMD_mol = (E_minus_EMD / n_molecules) / 1000
+
     # Print 2PT results
-    print("\n2PT Results:")
-    print("-"*81)
-    print(f"{'Parameter':<15}{'Translational':>16}{'Rotational':>16}{'Vibrational':>16}{'Total':>16}")
-    print("-"*81)
-    print(f"{'S_0 (ps)':<15}{s0_tr:>16.2f}{s0_rot:>16.2f}{s0_vib:>16.2f}{s0_total:>16.2f}")
-    print(f"{'Delta':<15}{Delta_tr:>16.5f}{Delta_rot:>16.5f}{Delta_vib:>16.5f}{Delta_total:>16.5f}")
-    print(f"{'Fluidicity':<15}{f_tr:>16.5f}{f_rot:>16.5f}{f_vib:>16.5f}{f_total:>16.5f}")
-    print(f"{'S (J/molK)':<15}{S_tr_mol:>16.2f}{S_rot_mol:>16.2f}{S_vib_mol:>16.2f}{S_total_mol:>16.2f}")
-    print("-"*81)
+    print("\nTWO-PHASE THERMODYNAMICS RESULTS:")
+    print("-"*100)
+    print(f"{'Parameter':<20}{'Translational':>16}{'Rotational':>16}{'Vibrational':>16}{'Total':>16}")
+    print("-"*100)
+    print(f"{'S_0 (ps)':<20}{s0_tr:>16.2f}{s0_rot:>16.2f}{s0_vib:>16.2f}{s0_total:>16.2f}")
+    print(f"{'Delta':<20}{Delta_tr:>16.5f}{Delta_rot:>16.5f}{Delta_vib:>16.5f}{Delta_total:>16.5f}")
+    print(f"{'Fluidicity':<20}{f_tr:>16.5f}{f_rot:>16.5f}{f_vib:>16.5f}{f_total:>16.5f}")
+    print(f"{'S (J/molK)':<20}{S_tr_mol:>16.2f}{S_rot_mol:>16.2f}{S_vib_mol:>16.2f}{S_total_mol:>16.2f}")
+    print(f"{'E - E(MD) (kJ/mol)':<20}{E_tr_mol:>16.2f}{E_rot_mol:>16.2f}{E_vib_mol:>16.2f}{E_minus_EMD_mol:>16.2f}")
+    print(f"{'ZPE (kJ/mol)':<20}{'':>16}{'':>16}{E_zpe_mol:>16.2f}{'':>16}")
+    print("-"*100)
+
     # Save entropy results with total column as sum of three components per row
     np.savetxt(
         'entropy.txt',
-        np.column_stack((
+        np.array(
             [S_tr_mol, S_rot_mol, S_vib_mol, S_total_mol],
-        )),
-        header='(J/mol K)   Translational   Rotational   Vibrational   Total',
-        fmt='%.2f'
+        ),
+        header='S:(J/mol K)   Translational   Rotational   Vibrational   Total',
+        fmt='%.3f'
+    )
+    np.savetxt(
+        'energy.txt',
+        np.array(
+            [E_tr_mol, E_rot_mol, E_vib_mol, E_minus_EMD_mol, E_zpe_mol, kinetic_mol]
+        ),
+        header='E-E(MD):(kJ/mol)   Translational   Rotational   Vibrational   Total   ZPE   Kinetic-E',
+        fmt='%.3f',
     )
 
 if __name__ == "__main__":

@@ -2,14 +2,14 @@
 ;	File 'mdout.mdp' was generated
 ;	By user: cyan (1000)
 ;	On host: fedora
-;	At date: Sun Apr 27 14:26:13 2025
+;	At date: Wed Feb 18 00:34:06 2026
 ;
 ;	Created by:
-;	                     :-) GROMACS - gmx grompp, 2024.5 (-:
+;	                     :-) GROMACS - gmx grompp, 2025.4 (-:
 ;	
-;	Executable:   /usr/local/gromacs/bin/gmx
-;	Data prefix:  /usr/local/gromacs
-;	Working dir:  /home/cyan/Github/py2pt/validation/F3C
+;	Executable:   /home/cyan/.local/gromacs-2025/bin/gmx
+;	Data prefix:  /home/cyan/.local/gromacs-2025
+;	Working dir:  /home/cyan/Github/Py2PT/validation/F3C
 ;	Command line:
 ;	  gmx grompp -f nvt.mdp -c npt.gro -t npt.cpt -p topol.top -o nvt.tpr -maxwarn 1
 
@@ -37,7 +37,7 @@ mass-repartition-factor  = 1
 ; mode for center of mass motion removal
 comm-mode                = Linear
 ; number of steps for center of mass motion removal
-nstcomm                  = 100
+nstcomm                  = 10
 ; group(s) for center of mass motion removal
 comm-grps                = 
 
@@ -69,7 +69,7 @@ nstfout                  = 0
 ; Output frequency for energies to log file and energy file
 nstlog                   = 1000
 nstcalcenergy            = 100
-nstenergy                = 100
+nstenergy                = 10
 ; Output frequency and precision for .xtc file
 nstxout-compressed       = 0
 compressed-x-precision   = 1000
@@ -175,7 +175,7 @@ annealing-temp           =
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen-vel                  = no
 gen-temp                 = 300
-gen-seed                 = -79889866
+gen-seed                 = -692324545
 
 ; OPTIONS FOR BONDS    
 constraints              = none
@@ -264,6 +264,8 @@ restraint-lambdas        =
 temperature-lambdas      = 
 calc-lambda-neighbors    = 1
 init-lambda-weights      = 
+init-lambda-counts       = 
+init-wl-histogram-counts = 
 dhdl-print-energy        = no
 sc-function              = beutler
 sc-alpha                 = 0
@@ -327,3 +329,6 @@ qmmm-cp2k-active         = false
 
 ; Colvars bias
 colvars-active           = false
+
+; Neural Network potential
+nnpot-active             = false

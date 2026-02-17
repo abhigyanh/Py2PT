@@ -1,8 +1,8 @@
 
 ================================================================================
-Launching Py2PT version '1.2'
+Launching Py2PT version '1.3-alpha'
 Loading Topology: ../prod.tpr
-Loading Trajectory: ../traj.trr
+Loading Trajectory: ../traj.whole.trr
 nproc: 6
 Loading trajectory...
 Loading trajectory data into memory (this may take a while)...
@@ -13,8 +13,8 @@ Trajectory loading complete
 ================================================================================
                               TRAJECTORY INFORMATION
 ================================================================================
-Time step:                0.004 ps
-Selection string:         all
+Time step:                0.002 ps
+Selection string:         not name MW
 Number of atoms:          1500
 Number of molecules:      500
 Atoms per molecule:       3
@@ -27,30 +27,20 @@ Temperature:              298.15 K
                               USER DEFINED OPTIONS
 ================================================================================
 FFT filtering:            True
-FFT filter window:        11
+FFT filter window:        5
 Constrained bonds:        True
 Renomalize DOS:           True
 
 ================================================================================
                VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
 ================================================================================
-
-Memory usage estimates:
-- Total molecule data: 0.90 GB
-- Parent process: 0.90 GB (keeps all data)
-- Per worker (~84 molecules): 2.70 GB
-- Peak total memory: 17.10 GB
-  (parent + 6 workers with FFT overhead)
-Note: Each worker processes multiple molecules in parallel
-
 Performing velocity decomposition and DOS calculation...
 Finished velocity decomposition and DOS calculation.
-INFO: Performing zero correction on DOS spectra
 
 ================================================================================
                          TWO-PHASE THERMODYNAMICS ANALYSIS
 ================================================================================
-Principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
+Averaged principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
 
 Calculated power spectra at T = 298.15 K
 INFO: Using Blackman windowing before FFT
@@ -58,11 +48,11 @@ INFO: Using Savitsky-Golay filtering after FFT
 
 Integrated DOS Spectra:
 ----------------------------------------
-Translational:          1496.6196
-Rotational:             1891.9544
+Translational:          1494.4834
+Rotational:             1875.0795
 Vibrational:               0.0000
 ----------------------------------------
-Total:                  3388.5740
+Total:                  3369.5628
 
 INFO: Re-normalizing DoS by scaling factor to match theoretical DOF
 -- Scale the DOS to set the integral equal to 'real' degrees of freedom
@@ -74,20 +64,20 @@ Decomposing density of states...
 ----------------------------------------
 INFO: Using bisect method to solve for fluidicity
 INFO: Using bisect method to solve for fluidicity
-- Negative values in DOS_rot_s detected (beyond tolerance = -0.01)
-s0_rot: 9.20138073020678
-Most negative value in DOS_rot_s: -0.45466417811691784
+- Negative values in DOS_rot_s detected (beyond tolerance = 0.01)
+s0_rot: 8.693114833360774
+Most negative value in DOS_rot_s: -0.11770920342371037
 Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
 INFO: Using bisect method to solve for fluidicity
 
-Calculating component entropies...
+Calculating component-wise entropies:
 
 2PT Results:
 ---------------------------------------------------------------------------------
 Parameter         Translational      Rotational     Vibrational           Total
 ---------------------------------------------------------------------------------
-S_0 (ps)                 178.76            9.20            0.00          187.96
-Delta                   0.25881         0.01332         0.00000         0.27214
-Fluidicity              0.30025         0.06311         0.00000         0.36337
-S (J/molK)                52.91           11.15            0.00           64.06
+S_0 (ps)                 189.60            8.69            0.00          198.30
+Delta                   0.27452         0.01259         0.00000         0.28711
+Fluidicity              0.30881         0.06115         0.00000         0.36996
+S (J/molK)                53.03           11.18            0.00           64.21
 ---------------------------------------------------------------------------------

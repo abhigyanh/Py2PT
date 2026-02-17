@@ -9,11 +9,12 @@ dt                      = 0.001       ; 1 fs
 nstxout                 = 1            ; save coordinates every 1 fs
 nstvout                 = 1            ; save velocities every  1 fs
 nstfout                 = 0            ; don't save forces
-nstenergy               = 100          ; save energies every 100 fs
+nstenergy               = 10           ; save energies every 10 fs
 nstlog                  = 1000         ; update log file every 1 ps
 
 ; Center of mass motion removal
 comm-mode               = Linear       ; remove COM linear momentum
+nstcomm                 = 10
 
 ; Bond parameters
 continuation            = yes        

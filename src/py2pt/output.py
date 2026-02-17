@@ -93,7 +93,7 @@ def plot_histogram(I_lk, filename, bins=100, dpi=300):
     if I_lk.ndim != 2 or I_lk.shape[1] != 3:
         raise ValueError(f"I_lk must have shape (n_molecules, 3); got {I_lk.shape}")
 
-    fig, ax = plt.subplots(1, 1, figsize=(7.2, 4.2))
+    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
     labels = [r"$I_1$", r"$I_2$", r"$I_3$"]
     palette = plt.cm.Set2(np.linspace(0.0, 1.0, 3))
@@ -112,7 +112,7 @@ def plot_histogram(I_lk, filename, bins=100, dpi=300):
     )
     ax.set(
         title = "Distribution of principal moments of inertia (per molecule)",
-        xlabel = r"Moment of inertia (amu·Å$^2$)",
+        xlabel = r"Principal moment of inertia (amu·Å$^2$)",
         ylabel = "Count (Num. molecules/resids)",
     )
     ax.grid(True, alpha=0.25)

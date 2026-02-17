@@ -1,9 +1,4 @@
-"""
-Entropy calculations from density of states spectra using the Two-Phase Thermodynamic (2PT) method.
-
-This module provides functions to calculate entropy from molecular dynamics trajectories by
-decomposing the density of states into solid-like and gas-like contributions.
-"""
+# entropy.py
 
 import numpy as np
 from scipy.optimize import root_scalar
@@ -197,8 +192,8 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
     DOS_rot_s = DOS_rot - DOS_rot_g
 
     # If any negative values in DOS_rot_s, do the following compensation
-    tol = -1e-2
-    if np.any(DOS_rot_s < tol):
+    tol = 1e-2
+    if np.any(DOS_rot_s < -tol):
         print(f"- Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
         print(f"s0_rot: {s0_rot}")
         # Print the largest negative value
@@ -208,7 +203,7 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
         neg_idx = np.where(DOS_rot_g > DOS_rot)
         # Try two-phase decomposition again
         print(f"Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.")
-        DOS_rot[neg_idx] += DOS_rot_g[neg_idx] - DOS_rot[neg_idx]
+        DOS_rot[neg_idx] += np.abs(DOS_rot_g[neg_idx] - DOS_rot[neg_idx])
         s0_rot = DOS_rot[0]
         Delta_rot = calculate_delta(T, V, N, m, s0_rot)
         f_rot = calculate_fluidicity(Delta_rot)
@@ -303,11 +298,19 @@ def calculate_translational_entropy(nu: np.ndarray, DOS_tr_s: np.ndarray, DOS_tr
     S_HS = (5/2 + np.log(conv3 * (2*pi*m*kB*T/h**2)**(3/2) * V/N * z/f_tr) + 
             (3*y*y - 4*y)/(1-y)**2)
 
-    # Weighing functions
-    bhn = h/kT * nu
-    W_gas = 1/3 * S_HS
-    W_solid = bhn/(np.exp(bhn)-1) - np.log(1-np.exp(-bhn))
+    # Use a mask to handle zeros or near-zeros
+    limit = 1e-6
+    bhn = np.where(nu < limit, limit, h*nu/kT)
 
+    # Weighing functions
+    W_gas = 1/3 * S_HS
+    # For the first term: use the identity or a specialized function
+    term1 = bhn / (np.expm1(bhn))
+    # For the second term: 
+    # To avoid log(0), ensure the argument is slightly above 0
+    term2 = -np.log(1 - np.exp(-bhn))
+    W_solid = term1 + term2
+    # Integrate to get the total entropy
     S_tr = simpson(DOS_tr_g*W_gas, x=nu) + simpson(DOS_tr_s*W_solid, x=nu)
     return S_tr * kB * eVtoJ
 
@@ -345,10 +348,17 @@ def calculate_rotational_entropy(nu: np.ndarray, DOS_rot_s: np.ndarray, DOS_rot_
     Theta3 = h**2/(8*pi**2*kB*I_3) * conv4
     S_R = np.log(pi**(1/2)*e**(3/2)/Sigma * (T**3/(Theta1*Theta2*Theta3))**(1/2))
 
+    # Use a mask to handle zeros or near-zeros
+    limit = 1e-6
+    bhn = np.where(nu < limit, limit, h*nu/kT)
     # Weighing functions
-    bhn = h/kT * nu
+    # For the first term: use the identity or a specialized function
+    term1 = bhn / (np.expm1(bhn))
+    # For the second term: 
+    # To avoid log(0), ensure the argument is slightly above 0
+    term2 = -np.log(1 - np.exp(-bhn))
+    W_solid = term1 + term2
     W_gas = 1/3 * S_R
-    W_solid = bhn/(np.exp(bhn)-1) - np.log(1-np.exp(-bhn))
 
     S_rot = simpson(DOS_rot_g*W_gas, x=nu) + simpson(DOS_rot_s*W_solid, x=nu)
     return S_rot * kB * eVtoJ
@@ -372,8 +382,15 @@ def calculate_vibrational_entropy(nu: np.ndarray, DOS_vib: np.ndarray, T: float)
         Vibrational entropy in J/(mol·K)
     """
     kT = kB*T
-    bhn = h/kT * nu
-    W_solid = bhn/(np.exp(bhn)-1) - np.log(1-np.exp(-bhn))
+    # Use a mask to handle zeros or near-zeros
+    limit = 1e-6
+    bhn = np.where(nu < limit, limit, h*nu/kT)
+    # For the first term: use the identity or a specialized function
+    term1 = bhn / (np.expm1(bhn))
+    # For the second term: 
+    # To avoid log(0), ensure the argument is slightly above 0
+    term2 = -np.log(1 - np.exp(-bhn))
+    W_solid = term1 + term2
 
     S_vib = simpson(DOS_vib*W_solid, x=nu)
     return S_vib * kB * eVtoJ 

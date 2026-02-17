@@ -1,3 +1,5 @@
+# spectrum.py
+
 import numpy as np
 from tqdm import tqdm
 from scipy.signal import savgol_filter
