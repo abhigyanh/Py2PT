@@ -1,0 +1,13 @@
+In certain solid-phase trajectories of bulk hexagonal ice, the root finding method for calculating (translational) fluidicity fails with error:
+
+"""
+/_zeros_py.py", line 595, in bisect
+    r = _zeros._bisect(f, a, b, xtol, rtol, maxiter, args, full_output, disp)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: f(a) and f(b) must have different signs
+"""
+
+Consider:
+1. Using a different method of root finding, like brent?
+2. Calculating fluidicity directly by using a different approach to compute diffusivity. 
+3. Einstein MSD diffusivity? Hard sphere diffusivity of course is calculate analytically.  
