@@ -70,18 +70,28 @@ def main():
         sys.exit(1)
 
     # Value checker
-    if nproc < 1:
+    if not isinstance(nproc, int) or nproc < 1:
         print(f"Error: nproc must must be a positive integer, not {nproc}.")
         sys.exit(1)
     if not isinstance(sigma, int) or sigma <= 0:
         print(f"Error: sigma must be a positive integer, not {sigma}.")
         sys.exit(1)
+    if FILTERING not in [True, False]:
+        print("Error: FILTERING must be either True or False.")
+        sys.exit(1)
     if not isinstance(filter_window, int) or filter_window <= 3:
         print(f"Error: filter_window must be a positive integer > 3 (default = 5).")
+        sys.exit(1)
+    if CONSTRAINED_BONDS not in [True, False]:
+        print("Error: CONSTRAINED_BONDS must be either true or false.")
         sys.exit(1)
     if RENORMALIZE_DOS not in [False, 'false', 'before_f', 'after_f']:
         print("Error: RENORMALIZE_DOS must be either 'false', 'before_f', or 'after_f'.")
         sys.exit(1)
+    if ZERO_CORRECTION not in [True, False]:
+        print("Error: ZERO_CORRECTION must be either true or false.")
+        sys.exit(1)
+
 
     #==========================================================================
     # Opening print
