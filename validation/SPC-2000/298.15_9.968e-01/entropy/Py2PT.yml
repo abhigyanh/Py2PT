@@ -4,8 +4,8 @@ trajectory: ../traj.whole.trr
 selection: not name MW
 nproc: 6
 sigma: 2
-filter: false
+filter: true
 filter_window: 5
 constraints: true
-renormalize: true
-zero_correction: false
+renormalize: before_f
+zero_correction: true

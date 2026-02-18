@@ -1,4 +1,4 @@
-# This file was created Tue Feb 17 23:27:40 2026
+# This file was created Wed Feb 18 19:05:14 2026
 # Created by:
 #                      :-) GROMACS - gmx energy, 2025.4 (-:
 # 
@@ -9,7 +9,7 @@
 #   gmx energy -f eq.edr -o ./ener-eq/potential.xvg
 # gmx energy is part of G R O M A C S:
 #
-# S  C  A  M  O  R  G
+# GRowing Old MAkes el Chrono Sweat
 #
 @    title "GROMACS Energies"
 @    xaxis  label "Time (ps)"

@@ -1,6 +1,6 @@
 
 ================================================================================
-Launching Py2PT version '1.33'
+Running Py2PT (version 1.40)
 Loading Topology: ../prod.tpr
 Loading Trajectory: ../traj.whole.trr
 nproc: 6
@@ -26,31 +26,34 @@ Temperature:              298.15 K
 ================================================================================
                               USER DEFINED OPTIONS
 ================================================================================
-FFT filtering:            False
+FFT filtering:            True
 FFT filter window:        5
 Constrained bonds:        True
-Renomalize DOS:           True
+Renomalize DOS:           before_f
 
 ================================================================================
                VELOCITY DECOMPOSITION & DENSITY OF STATES SPECTRA
 ================================================================================
 Performing velocity decomposition and DOS calculation...
 Finished velocity decomposition and DOS calculation.
+INFO: Performing zero correction on DOS spectra
 
 ================================================================================
                          TWO-PHASE THERMODYNAMICS ANALYSIS
 ================================================================================
 Averaged principal moments of inertia: I_1 = 0.5968, I_2 = 1.3440, I_3 = 1.9408 amu·Å²
 
-Calculated power spectra at T = 298.15 K
+Calculated DOS spectra at T = 298.15 K
+INFO: Using Blackman windowing before FFT
+INFO: Using Savitsky-Golay filtering after FFT
 
 Integrated DOS Spectra:
 ----------------------------------------
-Translational:          5986.8723
-Rotational:             7529.3765
+Translational:          6008.6320
+Rotational:             7589.3141
 Vibrational:               0.0000
 ----------------------------------------
-Total:                 13516.2488
+Total:                 13597.9461
 
 INFO: Re-normalizing DoS by scaling factor to match theoretical DOF
 -- Scale the DOS to set the integral equal to 'real' degrees of freedom
@@ -60,26 +63,21 @@ INFO: Re-normalizing DoS by scaling factor to match theoretical DOF
 
 Decomposing density of states...
 ----------------------------------------
-INFO: Using bisect method to solve for fluidicity
-INFO: Using bisect method to solve for fluidicity
+
 - Negative values in DOS_rot_s detected (beyond tolerance = 0.01)
-s0_rot: 36.22415078774931
-Most negative value in DOS_rot_s: -0.7478893849551511
+s0_rot: 37.86306091182645
+Most negative value in DOS_rot_s: -1.6116016075225659
 Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
-INFO: Using bisect method to solve for fluidicity
-
-Calculating component-wise entropies:
-
-Calculating component-wise entropies:
+DOS decomposition finished.
 
 TWO-PHASE THERMODYNAMICS RESULTS:
 ----------------------------------------------------------------------------------------------------
 Parameter              Translational      Rotational     Vibrational           Total
 ----------------------------------------------------------------------------------------------------
-S_0 (ps)                      736.78           36.22            0.00          773.01
-Delta                        0.26669         0.01311         0.00000         0.27980
-Fluidicity                   0.30458         0.06256         0.00000         0.36714
-S (J/molK)                     53.15           11.19            0.00           64.34
-E - E(MD) (kJ/mol)              6.71           11.31            0.00           18.02
+S_0 (ps)                      704.59           37.86            0.00          742.46
+Delta                        0.25504         0.01371         0.00000         0.26874
+Fluidicity                   0.29815         0.06412         0.00000         0.36227
+S (J/molK)                     53.12           11.26            0.00           64.38
+E - E(MD) (kJ/mol)              6.72           11.28            0.00           18.01
 ZPE (kJ/mol)                                                    0.00                
 ----------------------------------------------------------------------------------------------------

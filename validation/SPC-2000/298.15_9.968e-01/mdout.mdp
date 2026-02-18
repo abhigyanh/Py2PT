@@ -2,7 +2,7 @@
 ;	File 'mdout.mdp' was generated
 ;	By user: cyan (1000)
 ;	On host: fedora
-;	At date: Tue Feb 17 23:25:38 2026
+;	At date: Wed Feb 18 19:04:42 2026
 ;
 ;	Created by:
 ;	                     :-) GROMACS - gmx grompp, 2025.4 (-:
@@ -175,7 +175,7 @@ annealing-temp           =
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen-vel                  = no
 gen-temp                 = 300
-gen-seed                 = 2086138360
+gen-seed                 = -268575089
 
 ; OPTIONS FOR BONDS    
 constraints              = h-bonds
