@@ -5,93 +5,9 @@ from scipy.optimize import root_scalar
 from scipy.integrate import simpson
 from typing import Tuple
 
-from .constants import *
-from .output    import *
-
-def calculate_delta(T: float, V: float, N: float, m: float, s0: float) -> float:
-    """
-    Calculate the dimensionless Delta parameter used in the 2PT method.
-    
-    Parameters
-    ----------
-    T : float
-        Temperature in Kelvin
-    V : float
-        Volume in Å³
-    N : float
-        Number of molecules
-    m : float
-        Mass in amu
-    s0 : float
-        Zero-frequency value of the density of states in ps
-        
-    Returns
-    -------
-    float
-        Dimensionless Delta parameter
-    """
-    delta = (2*s0)/(9*N) * (pi*kB*T/m)**(1/2) * (N/V)**(1/3) * (6/pi)**(2/3)
-    # Convert units: (ps * sqrt(eV / amu) / Å)
-    conv2 = ps * np.sqrt(eV / amu) / angstrom
-    return delta*conv2
-
-def _equation_of_fluidicity(f: float, delta: float) -> float:
-    """
-    The equation that defines the fluidicity parameter.
-    
-    Parameters
-    ----------
-    f : float
-        Fluidicity parameter (between 0 and 1)
-    delta : float
-        Delta parameter from calculate_delta()
-        
-    Returns
-    -------
-    float
-        Value of the fluidicity equation
-    """
-    # Handle invalid input cases
-    if f < 0 or f > 1 or delta < 0:
-        return float('inf')  # Return infinity for invalid values
-    
-    # Handle special cases
-    if f == 0:
-        return -2  # The equation evaluates to -2 when f=0
-    # if delta == 0:
-    #     return float('inf') if f > 0 else -2  # f must be 0 when delta is 0
-    # if f == 1:
-    #     return 2  # Force positive value at f=1 to ensure different signs
-    
-    # The fluidicity equation is:
-    # 2δ^(-9/2)f^(15/2) - 6δ^(-3)f^5 - δ^(-3/2)f^(7/2) + 6δ^(-3/2)f^(5/2) + 2f - 2 = 0
-    try:
-        term1 = 2 * (delta**(-9/2)) * (f**(15/2))
-        term2 = -6 * (delta**(-3)) * (f**5)
-        term3 = -(delta**(-3/2)) * (f**(7/2))
-        term4 = 6 * (delta**(-3/2)) * (f**(5/2))
-        term5 = 2 * f - 2
-        return term1 + term2 + term3 + term4 + term5
-    except (ZeroDivisionError, RuntimeWarning):
-        return float('inf')
-
-def calculate_fluidicity(delta: float, method: str = 'brentq') -> float:
-    """
-    Calculate the fluidicity parameter by solving the fluidicity equation.
-    
-    Parameters
-    ----------
-    delta : float
-        Delta parameter from calculate_delta()
-        
-    Returns
-    -------
-    float
-        Fluidicity parameter (between 0 and 1)
-    """
-    print(f"INFO: Using {method} method to solve for fluidicity")
-    return root_scalar(lambda f: _equation_of_fluidicity(f, delta), 
-                      method=method, bracket=[1e-8, 1]).root
+from .constants     import *
+from .output        import *
+from .fluidicity    import *
 
 def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray, 
                               T: float, V: float, N: float, m: float,
@@ -121,7 +37,13 @@ def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray,
     Tuple[float, float, float, np.ndarray, np.ndarray]
         Delta, fluidicity, s0, gas-like DOS, solid-like DOS
     """
+    DOS_tr = DOS_tr.copy()
+
     s0_tr = DOS_tr[0]
+    if s0_tr <= 0:  # If negative due to zero correction, shift the whole spectrum up and try again
+        print(f"\nINFO: s0_tr is negative ({s0_tr}), compensating by shiting the DOS up and trying again")
+        DOS_tr += np.abs(s0_tr)
+        s0_tr = DOS_tr[0] + 1e-6
     Delta_tr = calculate_delta(T, V, N, m, s0_tr)
     f_tr = calculate_fluidicity(Delta_tr)
 
@@ -185,6 +107,11 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
 
     # First, try with direct value from first point
     s0_rot = DOS_rot[0]
+    if s0_rot <= 0:  # If negative due to zero correction, shift the whole spectrum up and try again
+        print(f"\nINFO: s0_rot is negative ({s0_rot}), compensating by shiting the DOS up and trying again")
+        DOS_rot += np.abs(s0_rot)
+        s0_rot = DOS_rot[0]
+
     Delta_rot = calculate_delta(T, V, N, m, s0_rot)
     f_rot = calculate_fluidicity(Delta_rot)
     DOS_rot_g = s0_rot/(1 + ((pi*s0_rot*nu)/(6*N*f_rot))**2)
@@ -193,7 +120,7 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
     # If any negative values in DOS_rot_s, do the following compensation
     tol = 1e-2
     if np.any(DOS_rot_s < -tol):
-        print(f"- Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
+        print(f"\n- Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
         print(f"s0_rot: {s0_rot}")
         # Print the largest negative value
         most_negative = np.min(DOS_rot_s)
@@ -287,15 +214,21 @@ def calculate_translational_entropy(nu: np.ndarray, DOS_tr_s: np.ndarray, DOS_tr
         Translational entropy in J/(mol·K)
     """
     kT = kB*T
+    if f_tr < 1e-4: # if less than 0.1% of modes are fluid-like, assume pure solid limit
+        print(f"\nINFO: Translation fluidicity (f_tr = {f_tr:.3f}) is too small, considering the solid limit i.e. S_HS = 0")
+        S_HS = 0.0
+    else:
+        # Hard sphere packing fraction (Carnahan-Sterling)
+        y = (f_tr**(5/2)) / (Delta_tr**(3/2))
+        # Safety check: Carnahan-Starling is for fluids. 
+        # If y approaches 1, the model is physically over-compressed.
+        y = min(y, 0.999)
+        z = (1 + y + y**2 - y**3) / (1 - y)**3
 
-    # Hard sphere packing fraction (Carnahan-Sterling)
-    y = (f_tr**(5/2)) / (Delta_tr**(3/2))
-    z = (1 + y + y**2 - y**3) / (1 - y)**3
-
-    # Dimensionless hard sphere entropy
-    conv3 = (amu / eV)**(3/2) * angstrom**3 / ps**3
-    S_HS = (5/2 + np.log(conv3 * (2*pi*m*kB*T/h**2)**(3/2) * V/N * z/f_tr) + 
-            (3*y*y - 4*y)/(1-y)**2)
+        # Dimensionless hard sphere entropy
+        conv3 = (amu / eV)**(3/2) * angstrom**3 / ps**3
+        S_HS = (5/2 + np.log(conv3 * (2*pi*m*kB*T/h**2)**(3/2) * V/N * z/f_tr) + 
+                (3*y*y - 4*y)/(1-y)**2)
 
     # Use a mask to handle zeros or near-zeros
     limit = 1e-6
