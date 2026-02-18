@@ -75,7 +75,7 @@ def _equation_of_fluidicity(f: float, delta: float) -> float:
     except (ZeroDivisionError, RuntimeWarning):
         return float('inf')
 
-def calculate_fluidicity(delta: float, method: str = 'bisect') -> float:
+def calculate_fluidicity(delta: float, method: str = 'brentq') -> float:
     """
     Calculate the fluidicity parameter by solving the fluidicity equation.
     
@@ -89,10 +89,9 @@ def calculate_fluidicity(delta: float, method: str = 'bisect') -> float:
     float
         Fluidicity parameter (between 0 and 1)
     """
-    method = 'bisect'
     print(f"INFO: Using {method} method to solve for fluidicity")
     return root_scalar(lambda f: _equation_of_fluidicity(f, delta), 
-                      method=method, bracket=[1e-6, 1]).root
+                      method=method, bracket=[1e-8, 1]).root
 
 def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray, 
                               T: float, V: float, N: float, m: float,
