@@ -68,19 +68,32 @@ def main():
 
     # Check if topology and trajectory files exist
     if not os.path.isfile(topology_file):
-        print(f"Error: Topology file '{topology_file}' does not exist.")
+        print(f"Error: Topology file '{topology_file}' could not be found.")
         sys.exit(1)
     if not os.path.isfile(trajectory_file):
-        print(f"Error: Trajectory file '{trajectory_file}' does not exist.")
+        print(f"Error: Trajectory file '{trajectory_file}' could not be found.")
         sys.exit(1)
 
+    # Value checker
+    if nproc < 1:
+        print(f"Error: nproc must must be a positive integer, not {nproc}.")
+        sys.exit(1)
+    if not isinstance(sigma, int) or sigma <= 0:
+        print(f"Error: sigma must be a positive integer, not {sigma}.")
+        sys.exit(1)
+    if not isinstance(filter_window, int) or filter_window <= 3:
+        print(f"Error: filter_window must be a positive integer > 3 (entered {filter_window}).")
+        sys.exit(1)
+    if RENORMALIZE_DOS not in [False, 'false', 'before_f', 'after_f']:
+        print("Error: RENORMALIZE_DOS must be either 'false', 'before_f', or 'after_f'.")
+        sys.exit(1)
 
     #==========================================================================
     # Opening print
     #==========================================================================
 
     print("\n" + "="*80)
-    print(f"Launching Py2PT version '{__version__}'")
+    print(f"Running Py2PT (version {__version__})")
     print(f"Loading Topology: {topology_file}")
     print(f"Loading Trajectory: {trajectory_file}")
     print(f"nproc: {nproc}")
@@ -239,9 +252,8 @@ def main():
     print(f"Averaged principal moments of inertia: I_1 = {I_1:.4f}, I_2 = {I_2:.4f}, I_3 = {I_3:.4f} amu·Å²")
     plot_histogram(I_lk, filename="principal_moments_of_inertia.png")
 
-
     # Print DOS calculation parameters
-    print(f"\nCalculated power spectra at T = {temperature} K")
+    print(f"\nCalculated DOS spectra at T = {temperature} K")
     if FILTERING:
         print("INFO: Using Blackman windowing before FFT")
         print("INFO: Using Savitsky-Golay filtering after FFT")
@@ -260,7 +272,8 @@ def main():
     print("-"*40)
     print(f"{'Total:':<20} {(vt_integral + vr_integral + vv_integral):>12.4f}")
     
-    if RENORMALIZE_DOS:
+    # Renormalize DOS BEFORE decomposition
+    if RENORMALIZE_DOS == 'before_f':
         # DOS re-normalization
         print(f"\nINFO: Re-normalizing DoS by scaling factor to match theoretical DOF")
         print(f"-- Scale the DOS to set the integral equal to 'real' degrees of freedom")
@@ -289,6 +302,20 @@ def main():
         freqs, vDOS
     )
     print("DOS decomposition finished.")
+
+    # Renormalize DOS AFTER decomposition
+    if RENORMALIZE_DOS == 'after_f':
+        # DOS re-normalization
+        print(f"\nINFO: Re-normalizing DoS by scaling factor to match theoretical DOF")
+        print(f"-- Scale the DOS to set the integral equal to 'real' degrees of freedom")
+        print(f"-- 3*nMol (for translation, rotation) and 3*nMol*(nAtomPerMol-2) for vibration")
+        print(f"-- This can lead to better convergence of entropy for short MD trajectories")
+        print(f"-- Reference: M.A. Caro, T. Laurila, and O. Lopez-Acevedo, The Journal of Chemical Physics 145, (2016).")
+
+        tDOS *= 3*n_molecules/np.trapz(tDOS, freqs)
+        rDOS *= 3*n_molecules/np.trapz(rDOS, freqs)
+        if CONSTRAINED_BONDS == False:
+            vDOS *= 3*n_molecules*(atoms_per_molecule-2)/np.trapz(vDOS, freqs)
 
     # Calculate entropies
     S_tr = calculate_translational_entropy(

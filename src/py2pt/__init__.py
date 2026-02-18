@@ -1,4 +1,3 @@
-__version__ = "1.35"
+import importlib.metadata
 
-
-
+__version__ = importlib.metadata.version('py2pt')
