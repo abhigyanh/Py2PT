@@ -20,6 +20,18 @@ V = V_cm3 * 1e24
 f_target = 0.29  # Example value
 
 def fluidicity_inverse_problem(s0_guess=1.0):
+    """
+    Solve for the zero-frequency DOS value s0 that yields the target fluidicity f_target.
+
+    Uses module-level T, V, N, m and f_target. Finds s0 such that the fluidicity equation
+    is satisfied when delta = calculate_delta(T, V, N, m, s0). Prints the result or a
+    convergence message.
+
+    Parameters
+    ----------
+    s0_guess : float, optional
+        Initial guess for s0 (root_scalar uses bracket [1e-8, 1e8]), by default 1.0
+    """
     def func(s0):
         delta = calculate_delta(T, V, N, m, s0)
         return _equation_of_fluidicity(f_target, delta)

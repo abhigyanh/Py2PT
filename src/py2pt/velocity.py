@@ -6,7 +6,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 from numba import njit
 
-from .spectrum import translational_density_of_states, vibrational_density_of_states, rotational_density_of_states
+from .spectrum import * 
 
 
 @njit

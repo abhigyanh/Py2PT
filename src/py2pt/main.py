@@ -1,9 +1,5 @@
-"""
-Main entry point for the Py2PT package.
+# main.py
 
-This script calculates velocity power spectra and entropy using the Two-Phase Thermodynamics (2PT) method from molecular dynamics trajectories.
-It parses command-line arguments, loads the trajectory, performs velocity decomposition, computes density of states, and outputs entropy and spectra results.
-"""
 #==========================================================================
 # Imports
 #==========================================================================
@@ -23,7 +19,6 @@ from . import __version__
 from .output        import *
 from .constants     import *
 from .velocity      import *
-from .inertia       import *
 from .spectrum      import *
 from .entropy       import *
 from .energy        import *
@@ -82,7 +77,7 @@ def main():
         print(f"Error: sigma must be a positive integer, not {sigma}.")
         sys.exit(1)
     if not isinstance(filter_window, int) or filter_window <= 3:
-        print(f"Error: filter_window must be a positive integer > 3 (entered {filter_window}).")
+        print(f"Error: filter_window must be a positive integer > 3 (default = 5).")
         sys.exit(1)
     if RENORMALIZE_DOS not in [False, 'false', 'before_f', 'after_f']:
         print("Error: RENORMALIZE_DOS must be either 'false', 'before_f', or 'after_f'.")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py2pt"
-version = "1.36"
+version = "1.361"
 description = "2PT method for density of states spectra and entropy calculation"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -4,6 +4,21 @@ import matplotlib.pyplot as plt
 from py2pt.entropy import calculate_delta, _equation_of_fluidicity, calculate_fluidicity
 
 def fluidicity_inverse_problem(s0_guess=1.0):
+    """
+    Solve for the zero-frequency DOS value s0 that yields a target fluidicity f.
+
+    Uses the global variables T, V, N, m (system parameters) and f_target (desired fluidicity).
+    Finds s0 such that the fluidicity equation is satisfied when delta = calculate_delta(T, V, N, m, s0).
+
+    Parameters
+    ----------
+    s0_guess : float, optional
+        Initial guess for s0 (currently unused; root_scalar uses bracket), by default 1.0
+
+    Notes
+    -----
+    Relies on module-level T, V, N, m and f_target. Prints the solved s0 or a convergence message.
+    """
     def func(s0):
         delta = calculate_delta(T, V, N, m, s0)
         return _equation_of_fluidicity(f_target, delta)
@@ -15,6 +30,12 @@ def fluidicity_inverse_problem(s0_guess=1.0):
         print("Root finding did not converge.")
 
 def plot_delta_vs_fluidicity():
+    """
+    Plot fluidicity as a function of delta on a log-log scale.
+
+    Computes fluidicity for 100 delta values from 1e-4 to 1e4 and saves the figure
+    as 'delta_vs_fluidicity.png'.
+    """
     # Create array of delta values
     delta_values = np.logspace(-4, 4, 100)  # 100 points from 1e-4 to 1e4
     
@@ -39,6 +60,18 @@ def plot_delta_vs_fluidicity():
     plt.close()
 
 def plot_fluidicity_equation(delta=None):
+    """
+    Plot the fluidicity equation value vs f for a given delta.
+
+    Evaluates the fluidicity equation 2δ^(-9/2)f^(15/2) - ... - 2 = 0 over f in [1e-6, 1]
+    and saves the figure as 'fluidicity_equation.png'. Also prints bracket sign checks
+    for the root finder.
+
+    Parameters
+    ----------
+    delta : float, optional
+        Delta parameter. If None, computed from module-level T, V, N, m and s0=1.0.
+    """
     # Calculate delta for some s0
     if delta is None:
         s0 = 1.0  # example s0 value

@@ -1,20 +1,4 @@
-r"""
-Energy (internal energy) utilities for the 2PT method.
-
-This module mirrors the structure of `entropy.py` but computes *energies* using
-2PT weighting functions.
-
-Notes
------
-Let \(bhn = h\\nu/(k_B T)\). The required (dimensionless) weighing functions are:
-
-- Solid-like (translation/rotation/vibration):
-  \(W_{solid} = bhn/2 + bhn/(e^{bhn}-1)\)
-- Gas-like (translation/rotation):
-  \(W_{gas} = 0.5\)
-
-The returned energies are in **J/mol**.
-"""
+# energy.py
 
 from __future__ import annotations
 
