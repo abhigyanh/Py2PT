@@ -219,11 +219,13 @@ def calculate_translational_entropy(nu: np.ndarray, DOS_tr_s: np.ndarray, DOS_tr
         S_HS = 0.0
     else:
         # Hard sphere packing fraction (Carnahan-Sterling)
+        print(f'\nUsing Carnahan-Starling hard-sphere equation of state')
         y = (f_tr**(5/2)) / (Delta_tr**(3/2))
         # Safety check: Carnahan-Starling is for fluids. 
         # If y approaches 1, the model is physically over-compressed.
         y = min(y, 0.999)
         z = (1 + y + y**2 - y**3) / (1 - y)**3
+        print(f'Hard sphere packing fraction (y = {y:.3f}) and compressibility (z = {z:.3f})')
 
         # Dimensionless hard sphere entropy
         conv3 = (amu / eV)**(3/2) * angstrom**3 / ps**3

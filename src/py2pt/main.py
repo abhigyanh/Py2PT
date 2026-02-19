@@ -50,6 +50,7 @@ def main():
 
     # Extract values from the config file
     temperature = config.get('temperature', 300.0)
+    volume_config = config.get('volume', None)
     topology_file = config.get('topology', 'topol.tpr')
     trajectory_file = config.get('trajectory', 'traj.trr')
     selection_string = config.get('selection', 'all')
@@ -91,6 +92,15 @@ def main():
     if ZERO_CORRECTION not in [True, False]:
         print("Error: ZERO_CORRECTION must be either true or false.")
         sys.exit(1)
+    if volume_config is not None:
+        try:
+            volume_config = float(volume_config)
+        except (TypeError, ValueError):
+            print(f"Error: volume must be a number in Å³, not {volume_config!r}.")
+            sys.exit(1)
+        if volume_config <= 0:
+            print(f"Error: volume must be positive (Å³), not {volume_config}.")
+            sys.exit(1)
 
 
     #==========================================================================
@@ -166,7 +176,13 @@ def main():
     n_molecules = len(ag.residues)
     atoms_per_molecule = int(n_atoms/n_molecules)
     molecule_mass = total_mass/n_molecules
-    volume = mda.lib.mdamath.box_volume(u.dimensions)   # Calculate volume in Å³
+    # Volume calculation
+    if volume_config is None:
+        volume = mda.lib.mdamath.box_volume(u.dimensions)  # Å³
+        volume_source = "calculated from trajectory"
+    else:
+        volume = volume_config  # Å³
+        volume_source = "user-defined"
     mass_density = (total_mass * amu) / (volume * angstrom**3)
     
     # Print system information
@@ -179,7 +195,7 @@ def main():
     print(f"{'Number of molecules:':<25} {n_molecules}")
     print(f"{'Atoms per molecule:':<25} {atoms_per_molecule}")
     print(f"{'Mass per molecule:':<25} {molecule_mass:.2f} amu")
-    print(f"{'Simulation volume:':<25} {volume:.2f} Å³")
+    print(f"{'Simulation volume:':<25} {volume:.2f} Å³ ({volume_source})")
     print(f"{'Mass density:':<25} {mass_density/1000:.3e} g/cm³")
     print(f"{'Temperature:':<25} {temperature} K")
     # Print user-defined options
