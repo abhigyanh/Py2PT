@@ -108,7 +108,7 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
     # First, try with direct value from first point
     s0_rot = DOS_rot[0]
     if s0_rot <= 0:  # If negative due to zero correction, shift the whole spectrum up and try again
-        print(f"\nINFO: s0_rot is negative ({s0_rot}), compensating by shiting the DOS up and trying again")
+        print(f"\nINFO: s0_rot is negative ({s0_rot}), compensating by shifting the DOS up and trying again")
         DOS_rot += np.abs(s0_rot)
         s0_rot = DOS_rot[0]
 
