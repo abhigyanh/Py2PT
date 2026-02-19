@@ -1,0 +1,59 @@
+# Py2PT.yml — configuration template
+#
+# Usage:
+#   - Put this file in the directory where you run Py2PT (default name: Py2PT.yml), OR
+#   - Point to it explicitly:
+#       py2pt -c Py2PT.yml
+#
+# Notes:
+#   - File paths below can be absolute or relative to your working directory.
+#   - Units:
+#       temperature: K
+#       volume: Å^3  (optional; if omitted, volume is computed from the trajectory box)
+#   - Valid values:
+#       filter: true|false
+#       filter_window: integer > 3
+#       constraints: true|false
+#       renormalize: false | before_f | after_f
+#         (use false to disable; choose before_f/after_f to renormalize the DoS)
+#       zero_correction: true|false
+#
+
+# Simulation temperature (in Kelvin)
+temperature: 300.0
+
+# Optional: the simulation volume in Å^3.
+# If you leave this commented out (or set it to null), Py2PT will compute volume from the trajectory box.
+# It is assumed that the simulation corresponding to the trajectory was an NVT simulation.
+# volume: 123456.0
+
+# Input files
+topology: topol.tpr
+trajectory: traj.trr
+
+# Atom selection (MDAnalysis selection language is supported)
+selection: all
+
+# Parallelism (molecule-level parallel decomposition; higher nproc may speed up the analysis, but beware of memory usage)
+nproc: 1
+
+# Rotational symmetry number (e.g., 1 for most molecules; 2 for water etc)
+sigma: 1
+
+# Spectral post-processing (use Blackmann windowing before FFT, Savgol filtering after FFT)
+filter: true
+filter_window: 5
+
+# Physics/model options:
+# Constraint dynamics were used (SHAKE,LINCS,SETTLE etc.)
+constraints: false
+# Renormalize the DoS to match equipartition, so that translation and rotation DOS integrates out to (3*n_molecules)
+# Options: 
+# 1. false, 
+# 2. before_f (before fluidicity calc)
+# 3. after_f (after fluidicity calc)
+renormalize: after_f
+# Perform a zero-frequency correction to the total DOS by 
+# shifting it vertically so that frequencies above 120ps^-1 have no residual DOS
+zero_correction: false
+
