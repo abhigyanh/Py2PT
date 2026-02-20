@@ -1,6 +1,6 @@
 
 ================================================================================
-Running Py2PT (version 1.40)
+Running Py2PT (version 1.41)
 Loading Topology: ../prod.tpr
 Loading Trajectory: ../traj.whole.trr
 nproc: 6
@@ -19,7 +19,7 @@ Number of atoms:          6000
 Number of molecules:      2000
 Atoms per molecule:       3
 Mass per molecule:        18.02 amu
-Simulation volume:        59974.82 Å³
+Simulation volume:        59974.82 Å³ (calculated from trajectory)
 Mass density:             9.976e-01 g/cm³
 Temperature:              298.15 K
 
@@ -49,11 +49,11 @@ INFO: Using Savitsky-Golay filtering after FFT
 
 Integrated DOS Spectra:
 ----------------------------------------
-Translational:          6008.6320
-Rotational:             7589.3141
+Translational:          5971.3239
+Rotational:             7491.6675
 Vibrational:               0.0000
 ----------------------------------------
-Total:                 13597.9461
+Total:                 13462.9914
 
 INFO: Re-normalizing DoS by scaling factor to match theoretical DOF
 -- Scale the DOS to set the integral equal to 'real' degrees of freedom
@@ -65,19 +65,22 @@ Decomposing density of states...
 ----------------------------------------
 
 - Negative values in DOS_rot_s detected (beyond tolerance = 0.01)
-s0_rot: 37.86306091182645
-Most negative value in DOS_rot_s: -1.6116016075225659
+s0_rot: 35.51457448516137
+Most negative value in DOS_rot_s: -0.47045187644309827
 Compensating by adding extraneous DOS_rot_g to DOS_rot and re-decomposing.
 DOS decomposition finished.
+
+Using Carnahan-Starling hard-sphere equation of state
+Hard sphere packing fraction (y = 0.377) and compressibility (z = 6.054)
 
 TWO-PHASE THERMODYNAMICS RESULTS:
 ----------------------------------------------------------------------------------------------------
 Parameter              Translational      Rotational     Vibrational           Total
 ----------------------------------------------------------------------------------------------------
-S_0 (ps)                      704.59           37.86            0.00          742.46
-Delta                        0.25504         0.01371         0.00000         0.26874
-Fluidicity                   0.29815         0.06412         0.00000         0.36227
-S (J/molK)                     53.12           11.26            0.00           64.38
-E - E(MD) (kJ/mol)              6.72           11.28            0.00           18.01
+S_0 (ps)                      705.01           35.51            0.00          740.52
+Delta                        0.25519         0.01286         0.00000         0.26804
+Fluidicity                   0.29823         0.06187         0.00000         0.36011
+S (J/molK)                     53.02           11.15            0.00           64.17
+E - E(MD) (kJ/mol)              6.73           11.32            0.00           18.05
 ZPE (kJ/mol)                                                    0.00                
 ----------------------------------------------------------------------------------------------------

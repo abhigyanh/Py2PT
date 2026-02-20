@@ -312,7 +312,7 @@ def main():
 
     # Decompose density of states using 2PT method
     print("\nDecomposing density of states...")
-    print("-"*40)
+    print("-"*50)
     Delta_tr, f_tr, s0_tr, DOS_tr_g, DOS_tr_s = decompose_translational_dos(
         freqs, tDOS, temperature, volume, n_molecules, molecule_mass
     )
@@ -423,9 +423,9 @@ def main():
     np.savetxt(
         'energy.txt',
         np.array(
-            [E_tr_mol, E_rot_mol, E_vib_mol, E_minus_EMD_mol, E_zpe_mol, kinetic_mol]
+            [E_tr_mol, E_rot_mol, E_vib_mol, E_zpe_mol, kinetic_mol, E_minus_EMD_mol]
         ),
-        header='E-E(MD):(kJ/mol)   Translational   Rotational   Vibrational   Total   ZPE   Kinetic-E',
+        header='E-E(MD):(kJ/mol)   Translational   Rotational   Vibrational   ZPE   Kinetic-E   Total',
         fmt='%.3f',
     )
 

@@ -57,9 +57,9 @@ def decompose_translational_dos(nu: np.ndarray, DOS_tr: np.ndarray,
     DOS_tr_s = DOS_tr - DOS_tr_g
     
     # If any negative values in DOS_rot_s, set them zero
-    tol = -1e-2
-    if np.any(DOS_tr_s < tol):
-        print(f"Negative values in DOS_tr_s detected (beyond tolerance = {tol})")
+    tol = 1e-2
+    if np.any(DOS_tr_s < -tol):
+        print(f"Negative values in DOS_tr_s detected (less than {-tol})")
         print(f"s0_tr: {s0_tr}")
         # Print the largest negative value
         most_negative = np.min(DOS_tr_s)
@@ -120,7 +120,7 @@ def decompose_rotational_dos(nu: np.ndarray, DOS_rot: np.ndarray,
     # If any negative values in DOS_rot_s, do the following compensation
     tol = 1e-2
     if np.any(DOS_rot_s < -tol):
-        print(f"\n- Negative values in DOS_rot_s detected (beyond tolerance = {tol})")
+        print(f"\nINFO: Negative values in DOS_rot_s detected (less than {-tol})")
         print(f"s0_rot: {s0_rot}")
         # Print the largest negative value
         most_negative = np.min(DOS_rot_s)
@@ -219,7 +219,7 @@ def calculate_translational_entropy(nu: np.ndarray, DOS_tr_s: np.ndarray, DOS_tr
         S_HS = 0.0
     else:
         # Hard sphere packing fraction (Carnahan-Sterling)
-        print(f'\nUsing Carnahan-Starling hard-sphere equation of state')
+        print(f'\nINFO: Using Carnahan-Starling hard-sphere equation of state')
         y = (f_tr**(5/2)) / (Delta_tr**(3/2))
         # Safety check: Carnahan-Starling is for fluids. 
         # If y approaches 1, the model is physically over-compressed.
